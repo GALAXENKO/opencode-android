@@ -26,6 +26,7 @@ $target   = Join-Path $RepoRoot 'OpenCodeAndroid\app\src\main\jniLibs\arm64-v8a\
 $patcher  = Join-Path $PSScriptRoot 'patch-binary.js'
 
 New-Item -ItemType Directory -Force -Path $work | Out-Null
+New-Item -ItemType Directory -Force -Path (Split-Path -Parent $target) | Out-Null
 
 $url = "https://registry.npmjs.org/@opencode/cli-linux-arm64-musl/-/cli-linux-arm64-musl-$Version.tgz"
 if (-not (Test-Path $tarball)) {
