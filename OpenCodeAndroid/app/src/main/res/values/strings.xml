@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">OpenCode</string>
+
+    <string name="notif_channel_name">OpenCode server</string>
+    <string name="notif_channel_desc">Keeps the embedded OpenCode server running</string>
+    <string name="notif_title">OpenCode</string>
+    <string name="notif_text">Server is running</string>
+    <string name="notif_text_starting">Starting server…</string>
+    <string name="notif_text_running">Server running on port %1$d</string>
+    <string name="notif_text_error">Server stopped with an error</string>
+
+    <string name="status_idle">Starting…</string>
+    <string name="status_starting">Starting OpenCode server…</string>
+    <string name="status_running">OpenCode • 127.0.0.1:%1$d</string>
+    <string name="status_error">Server error</string>
+    <string name="status_stopped">Server stopped</string>
+
+    <string name="action_reload">Reload</string>
+    <string name="action_menu">Menu</string>
+    <string name="action_retry">Retry</string>
+
+    <string name="menu_reload">Reload page</string>
+    <string name="menu_desktop">Desktop user agent</string>
+    <string name="menu_config">Provider / config editor</string>
+    <string name="menu_restart">Restart server</string>
+    <string name="menu_stop">Stop server</string>
+    <string name="menu_copy_url">Copy server URL</string>
+    <string name="menu_logs">Show server log</string>
+    <string name="menu_share_log">Share server log file</string>
+
+    <string name="error_title">The OpenCode server did not start</string>
+
+    <string name="config_title">opencode.jsonc</string>
+    <string name="config_hint">Edit the OpenCode config (JSON with comments).</string>
+    <string name="config_save">Save &amp; restart</string>
+    <string name="config_validate">Validate</string>
+    <string name="config_add_provider">Add provider</string>
+    <string name="config_open_folder">Server log</string>
+    <string name="config_saved">Saved. Restarting the server…</string>
+    <string name="config_invalid">Config problems found</string>
+    <string name="config_save_anyway">Save anyway</string>
+    <string name="config_cancel">Cancel</string>
+    <string name="config_reload">Reload from disk</string>
+    <string name="config_ok">Config looks valid</string>
+    <string name="config_discard_title">Discard changes?</string>
+    <string name="config_discard_text">Your edits to opencode.jsonc have not been saved.</string>
+    <string name="config_discard">Discard</string>
+    <string name="config_keep">Keep editing</string>
+    <string name="config_reload_confirm">Reload the file from disk? Unsaved edits will be lost.</string>
+    <string name="config_write_failed">Could not write the config: %1$s</string>
+    <string name="config_path">%1$s</string>
+
+    <string name="provider_title">Add provider</string>
+    <string name="provider_id">Provider ID (e.g. my-provider)</string>
+    <string name="provider_name">Display name</string>
+    <string name="provider_package">Package</string>
+    <string name="provider_base_url">Base URL (e.g. https://api.example.com/v1)</string>
+    <string name="provider_api_key">API key</string>
+    <string name="provider_model_id">Model ID (e.g. gpt-4o)</string>
+    <string name="provider_model_name">Model display name (optional)</string>
+    <string name="provider_add">Add</string>
+    <string name="provider_error_id">Provider ID is required</string>
+    <string name="provider_error_model">Model ID is required</string>
+    <string name="provider_error_url">Base URL is required (e.g. https://api.example.com/v1)</string>
+    <string name="provider_set_default">Use this model as the default</string>
+    <string name="provider_help">Adds providers.&lt;id&gt; with the openai-compatible package and one model. Comments in the file are dropped when this dialog rewrites it — add more models in the raw editor.</string>
+    <string name="provider_exists">Provider "%1$s" already exists — it will be merged</string>
+
+    <string name="error_no_app">No app can open %1$s</string>
+    <string name="error_server_output">%1$s\n\n--- server output ---\n%2$s</string>
+    <string name="log_empty">(no output yet)</string>
+
+    <string name="download_started">Downloading %1$s…</string>
+    <string name="download_failed">Download failed: %1$s</string>
+    <string name="download_share">Share file</string>
+    <string name="download_saved">Saved to %1$s</string>
+</resources>

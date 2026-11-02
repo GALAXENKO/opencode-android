@@ -1,0 +1,10 @@
+const fs = require("fs");
+const src = process.env.USERPROFILE + "/.config/opencode/opencode.jsonc";
+const j = JSON.parse(fs.readFileSync(src, "utf8"));
+const out = {};
+if (j["$schema"]) out["$schema"] = j["$schema"];
+out.shell = "/system/bin/sh";
+out.model = "local-proxy/deepseek-v4-flash-0731";
+out.providers = j.providers;
+fs.writeFileSync("F:/oc/tools/android-opencode.jsonc", JSON.stringify(out, null, 2) + "\n");
+console.log("written", fs.statSync("F:/oc/tools/android-opencode.jsonc").size, "bytes");

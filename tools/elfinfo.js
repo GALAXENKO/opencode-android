@@ -1,0 +1,33 @@
+const fs = require('fs');
+const path = process.argv[2];
+const fd = fs.openSync(path, 'r');
+const head = Buffer.alloc(64);
+fs.readSync(fd, head, 0, 64, 0);
+const is64 = head[4] === 2;
+const le = head[5] === 1;
+const u16 = (b, o) => le ? b.readUInt16LE(o) : b.readUInt16BE(o);
+const u32 = (b, o) => le ? b.readUInt32LE(o) : b.readUInt32BE(o);
+const u64 = (b, o) => Number(le ? b.readBigUInt64LE(o) : b.readBigUInt64BE(o));
+console.log('file', path);
+console.log('class', is64 ? 'ELF64' : 'ELF32', 'endian', le ? 'LE' : 'BE');
+console.log('type', u16(head, 16), '(2=EXEC 3=DYN)');
+console.log('machine', u16(head, 18), '(183=aarch64 62=x86_64)');
+console.log('entry', '0x' + u64(head, 24).toString(16));
+const phoff = u64(head, 32);
+const phentsize = u16(head, 54);
+const phnum = u16(head, 56);
+console.log('phoff', phoff, 'phentsize', phentsize, 'phnum', phnum);
+const buf = Buffer.alloc(phentsize * phnum);
+fs.readSync(fd, buf, 0, buf.length, phoff);
+for (let i = 0; i < phnum; i++) {
+  const o = i * phentsize;
+  const type = u32(buf, o);
+  const flags = u32(buf, o + 4);
+  const offset = u64(buf, o + 8);
+  const vaddr = u64(buf, o + 16);
+  const filesz = u64(buf, o + 32);
+  const align = u64(buf, o + 48);
+  const names = { 1: 'LOAD', 2: 'DYNAMIC', 3: 'INTERP', 4: 'NOTE', 6: 'PHDR', 7: 'TLS', 0x6474e551: 'GNU_STACK', 0x6474e552: 'GNU_RELRO', 0x6474e553: 'GNU_PROPERTY' };
+  console.log(`  [${i}] ${names[type] || type} off=0x${offset.toString(16)} vaddr=0x${vaddr.toString(16)} filesz=0x${filesz.toString(16)} align=0x${align.toString(16)} flags=${flags}`);
+}
+fs.closeSync(fd);

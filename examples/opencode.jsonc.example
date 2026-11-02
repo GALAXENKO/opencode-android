@@ -1,0 +1,39 @@
+// Пример конфига OpenCode для Android-порта.
+// Скопируйте его в $HOME/.config/opencode/opencode.jsonc внутри приложения
+// (или вставьте в редактор: меню → "Provider / config editor").
+// Пути ниже — пример; замените baseURL / apiKey / id моделей на свои.
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  // На Android оболочка — toybox sh, а не bash/powershell.
+  "shell": "/system/bin/sh",
+
+  // Модель по умолчанию в формате "<providerID>/<modelID>".
+  "model": "my-provider/my-model",
+
+  "providers": {
+    // Любой OpenAI-совместимый эндпоинт добавляется так же, как на десктопе.
+    "my-provider": {
+      "name": "My Provider",
+      "package": "@opencode/ai/providers/openai-compatible",
+      "settings": {
+        "baseURL": "https://api.example.com/v1",
+        "apiKey": "sk-REPLACE_ME"
+      },
+      "models": {
+        "my-model": {
+          "name": "My Model",
+          "capabilities": {
+            "tools": true,
+            "reasoning": false,
+            "vision": false
+          },
+          "limit": {
+            "context": 128000,
+            "output": 32768
+          }
+        }
+      }
+    }
+  }
+}

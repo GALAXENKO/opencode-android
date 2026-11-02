@@ -1,0 +1,29 @@
+# ---- local toolchain / scratch ----
+buildenv/
+AuraWeather/
+logs/
+*.log
+tmp-*.so
+emu*.log
+
+# ---- Gradle / Android build output ----
+.gradle/
+build/
+local.properties
+captures/
+*.apk
+*.aab
+*.keystore
+*.jks
+lint-results*
+
+# ---- large native payloads (fetched by tools/build-native.ps1) ----
+OpenCodeAndroid/app/src/main/jniLibs/arm64-v8a/libopencode.so
+OpenCodeAndroid/app/src/x86/jniLibs/x86_64/libopencode.so
+buildenv/dl/**/*.tgz
+*.tgz
+
+# ---- secrets: real config with API keys ----
+tools/android-opencode.jsonc
+tools/opencode.jsonc
+*secret*
