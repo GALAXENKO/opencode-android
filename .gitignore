@@ -16,6 +16,8 @@ captures/
 *.keystore
 *.jks
 lint-results*
+__pycache__/
+*.pyc
 
 # ---- large native payloads (fetched by tools/build-native.ps1 / build-python.ps1) ----
 OpenCodeAndroid/app/src/main/jniLibs/arm64-v8a/libopencode.so

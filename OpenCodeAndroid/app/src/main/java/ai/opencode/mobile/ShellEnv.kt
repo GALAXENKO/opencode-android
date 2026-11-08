@@ -28,6 +28,8 @@ object ShellEnv {
         val own = listOf(
             AppEnv.binDir(ctx).absolutePath,
             AppEnv.home(ctx).absolutePath + "/.local/bin",
+            // `pip install foo` writes `foo` here (sysconfig 'scripts' under PYTHONHOME).
+            File(PythonRuntime.dir(ctx), "bin").absolutePath,
         )
         return (own + SYSTEM_PATH).joinToString(":")
     }

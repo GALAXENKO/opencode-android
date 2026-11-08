@@ -63,9 +63,22 @@ $size = (Get-ChildItem $layout -Recurse -File | Measure-Object -Sum Length)
 Write-Host ("staged: {0} files, {1:N0} bytes" -f $size.Count, $size.Sum)
 
 if (Test-Path $zipOut) { Remove-Item -Force $zipOut }
+Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-[System.IO.Compression.ZipFile]::CreateFromDirectory(
-    $layout, $zipOut, [System.IO.Compression.CompressionLevel]::Optimal, $false)
+# ZipFile::CreateFromDirectory writes entry names with '\' on .NET Framework, which the
+# Android extractor would treat as a literal character in a file name. Add entries with
+# explicit '/' separators so the archive is a portable prefix tree.
+$base = (Resolve-Path $layout).Path
+$zip = [System.IO.Compression.ZipFile]::Open($zipOut, [System.IO.Compression.ZipArchiveMode]::Create)
+try {
+    Get-ChildItem $layout -Recurse -File | ForEach-Object {
+        $rel = $_.FullName.Substring($base.Length + 1).Replace('\', '/')
+        [void][System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+            $zip, $_.FullName, $rel, [System.IO.Compression.CompressionLevel]::Optimal)
+    }
+} finally {
+    $zip.Dispose()
+}
 
 $zipSize = (Get-Item $zipOut).Length
 Write-Host ("asset: {0} ({1:N0} bytes)" -f $zipOut, $zipSize)

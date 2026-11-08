@@ -10,9 +10,13 @@ android {
     defaultConfig {
         applicationId = "ai.opencode.mobile"
         minSdk = 26
-        targetSdk = 34
-        versionCode = 3
-        versionName = "2.3.1"
+        // 28 is deliberate, not stale: Android 10+ denies `execve` of files inside the
+        // app's private data dir for apps targeting API 29+, which would make the bundled
+        // Python runtime (and every `pip`-installed console script) unrunnable. Termux
+        // pins the same value for the same reason.
+        targetSdk = 28
+        versionCode = 5
+        versionName = "2.3.3"
     }
 
     buildTypes {
