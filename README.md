@@ -6,6 +6,9 @@
 движок, что и на десктопе: тот же конфиг, те же провайдеры, те же инструменты (shell, read/write,
 grep, edit), та же сессия и та же история.
 
+Сверху — мобильные удобства: **голосовой ввод**, **встроенный терминал**, **полноценный Python
+3.12 с pip** и **привязка своего GitHub и Google Drive** для работы с файлами.
+
 ## Что работает
 
 | Возможность | Статус |
@@ -14,6 +17,11 @@ grep, edit), та же сессия и та же история.
 | Официальный веб-UI v2 в WebView, cookie-авторизация | ✅ |
 | Реальная генерация через любой провайдер | ✅ |
 | Инструмент `shell` (toybox `/system/bin/sh`) | ✅ |
+| **Голосовой ввод** — микрофон в тулбаре, текст вставляется в поле веб-UI | ✅ |
+| **Терминал** — экран с интерактивным `sh`, общий `PATH` с агентом | ✅ |
+| **Python 3.12 + pip** внутри APK, виден и агенту, и терминалу | ✅ |
+| **GitHub** — вход по device flow, клон репозитория в `~/work`, пуш файла | ✅ |
+| **Google Drive** — вход по OAuth (PKCE), список, скачивание, загрузка | ✅ |
 | Добавление своего провайдера в конфиг (как на десктопе) | ✅ |
 | Редактор конфига + диалог «Add provider» | ✅ |
 | Экспорт/скачивание файлов из UI (включая blob) в `Download` | ✅ |
@@ -29,15 +37,21 @@ grep, edit), та же сессия и та же история.
 ┌─────────────────────────── APK (ai.opencode.mobile) ───────────────────────────┐
 │                                                                                │
 │  MainActivity ── WebView ──► http://127.0.0.1:<port>/  (официальный веб-UI v2) │
-│       │                              ▲                                         │
-│       │ cookie opencode_session_<port>=<exp>.<hmac>                            │
-│       ▼                              │                                         │
-│  ServerService (foreground) ─────────┘                                         │
-│       │ exec                                                                   │
-│       ▼                                                                        │
+│   │    │  mic ──► SpeechRecognizer ──► JS-вставка в активное поле              │
+│   │    ▼                              ▲                                        │
+│   │  cookie opencode_session_<port>=<exp>.<hmac>                               │
+│   ▼                                   │                                        │
+│  ServerService (foreground) ──────────┘                                        │
+│   │ exec                                                                       │
+│   ▼                                                                            │
 │  ld-musl-aarch64.so --library-path … libopencode.so serve --port <port>         │
-│       │                                                                        │
-│       └─ cwd = $HOME (files/home), конфиг в $HOME/.config/opencode/            │
+│   │                                                                            │
+│   ├─ cwd = $HOME (files/home), конфиг в $HOME/.config/opencode/                 │
+│   ├─ PATH = files/bin : $HOME/.local/bin : /system/bin : …                     │
+│   │     └─ files/bin/python3, pip3 — обёртки над musl-рантаймом CPython         │
+│   └─ spawn ──► /system/bin/sh (инструмент `shell`, TerminalActivity)           │
+│                                                                                │
+│  IntegrationsActivity ──► api.github.com / www.googleapis.com (HTTPS)          │
 └────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -59,6 +73,112 @@ grep, edit), та же сессия и та же история.
    сессионную cookie по той же схеме, что и сервер
    (`HMAC-SHA256(password, "opencode-session-v1")` → `HMAC-SHA256(inner, exp)` → base64url)
    и подставляет её в `CookieManager` для `127.0.0.1:<port>`. Никаких запросов пароля в UI.
+5. **Одно окружение на всех.** `ShellEnv` — единственный источник `PATH`/`HOME`/`XDG_*`/`PYTHON*`
+   для сервера, терминала и всех их потомков. Именно поэтому `python`, `pip` и обычные
+   Android-утилиты одинаково доступны и модели, и человеку в терминале.
+6. **Python — musl-сборка.** CPython для `aarch64-unknown-linux-musl` (тот же libc, что у CLI)
+   распаковывается из `assets/python.zip` в `files/python`; запускается через musl-загрузчик
+   с `--library-path`, а в `files/bin` кладутся шелл-обёртки `python`/`python3`/`pip`/`pip3`.
+   OpenSSL внутри статический, корневые сертификаты — `files/python/ssl/cacert.pem`.
+
+## Голосовой ввод
+
+Кнопка-микрофон в тулбаре главного экрана (рядом с ⋮).
+
+1. Нажать микрофон → выдать разрешение `RECORD_AUDIO` (спрашивается один раз).
+2. Говорить; распознанный текст подставляется **в то поле веб-UI, которое сейчас в фокусе**,
+   а если ни одно не в фокусе — в нижнее видимое поле ввода (композер чата).
+3. Текст вставляется как «настоящий» ввод (`document.execCommand('insertText')`, с откатом на
+   прямую вставку + синтетическое событие `input`), поэтому SolidJS-стор веб-UI видит изменение
+   и кнопка отправки активируется.
+
+Распознавание — системный `SpeechRecognizer` (Google/офлайн-пакет распознавания устройства).
+Интернет не обязателен, если на устройстве скачан офлайн-языковой пакет.
+
+## Терминал
+
+Меню ⋮ → **Terminal**. Это постоянный `/system/bin/sh` внутри песочницы приложения:
+
+- `cwd = $HOME` (`/data/data/ai.opencode.mobile/files/home`), `PATH` — тот же, что у агента;
+- `python`, `pip`, `sh`, `ls`, `grep`, `curl`-подобные toybox-утилиты работают сразу;
+- быстрые кнопки: `python`, `pip`, `~`, `~/work`, `env`, «новая оболочка», «очистить», «стоп»;
+- шелл живёт в синглтоне `TerminalSession`, поэтому поворот экрана и уход из активити его
+  не убивают; вывод хранится в кольцевом буфере на 3000 строк.
+
+Это **pipe-backed** шелл, а не PTY (Android не даёт публичного PTY API из Java): построчные
+команды, пайпы, редиректы, скрипты и интерактивные программы, которым достаточно stdin, работают;
+полноэкранные curses-UI (`vim`, `htop`, `top`) — нет.
+
+## Python
+
+Python 3.12.16 (CPython, musl aarch64) лежит в APK и распаковывается при первом запуске сервера:
+
+```
+files/python/bin/python3.12      интерпретатор (линкуется только с musl libc)
+files/python/lib/python3.12/     stdlib + ensurepip
+files/python/ssl/cacert.pem      корневые сертификаты для https://
+files/bin/python, python3        обёртки (exec через musl-загрузчик)
+files/bin/pip, pip3              обёртки (python -m pip)
+```
+
+- Первый запуск: распаковка ~1230 файлов и однократный `ensurepip` (несколько секунд, прогресс
+  виден в логе сервера).
+- `pip install <пакет>` работает; колёса ставятся в `files/python/lib/python3.12/site-packages`.
+  Для пакетов с нативным кодом нужны **manylinux/musllinux aarch64**-колёса — сборка из
+  исходников без NDK не пройдёт.
+- Агент видит Python через инструмент `shell`: достаточно `python3 script.py`, а скрипты с
+  `#!/usr/bin/env python3` запускаются как обычно.
+- Обновить/пересобрать рантайм: `tools/build-python.ps1` → `app/src/main/assets/python.zip`
+  (в git не коммитится, 26 МБ).
+
+## GitHub и Google Drive
+
+Меню ⋮ → **GitHub & Google Drive**. Ключи **свои**: приложение не содержит чужих `client_id`,
+поэтому лимиты и доступы — ваши.
+
+### GitHub (OAuth App + device flow)
+
+1. Открыть <https://github.com/settings/developers> → **OAuth Apps** → **New OAuth App**.
+2. Заполнить ровно так:
+
+   | Поле | Значение |
+   |---|---|
+   | **Application name** | `OpenCode Android` |
+   | **Homepage URL** | `https://opencode.ai` |
+   | **Authorization callback URL** | `https://opencode.ai` |
+
+   Callback для device flow не используется — важно только, что поле не пустое.
+3. В созданном приложении поставить галочку **Enable Device Flow** и нажать **Update**.
+4. Скопировать **Client ID** (Client secret не нужен) и вставить в приложении в поле
+   *GitHub OAuth App Client ID* → **Connect**.
+5. Приложение покажет код и кнопку «Open page»: подтвердить код на `github.com/login/device`.
+   Токен сохранится, повторный вход не нужен.
+
+Что умеет: **Clone repository** — список ваших репозиториев, выбранный скачивается zipball'ом
+в `~/work/<repo>` (префикс `<owner>-<repo>-<sha>/` срезается, получается обычный чекаут);
+**Push file** — залить/обновить один файл в репозитории (локальный путь относительно `~`,
+путь внутри репозитория, сообщение коммита). Скоуп — `repo read:user`.
+
+> Git-бинарника в Android нет, поэтому работа идёт через REST API: это «скачать» и «залить файл»,
+> а не полноценный `git clone/push`. История, ветки и merge — на десктопе.
+
+### Google Drive (OAuth client, PKCE)
+
+1. Открыть <https://console.cloud.google.com> → создать (или выбрать) проект.
+2. **APIs & Services → Library** → включить **Google Drive API**.
+3. **APIs & Services → OAuth consent screen**: тип **External**, заполнить название и e-mail,
+   добавить свой Google-аккаунт в **Test users** (пока приложение в статусе Testing, без этого
+   будет `access_denied`).
+4. **APIs & Services → Credentials → Create credentials → OAuth client ID**.
+5. **Application type** — `Desktop app`. Секрет не нужен, нужен только **Client ID**.
+6. Вставить Client ID в приложении в поле *Google OAuth Client ID (Desktop app)* → **Connect** →
+   откроется браузер, войти и разрешить доступ. Ответ ловится локальным loopback-сервером
+   на `127.0.0.1:<случайный порт>`, токен (с refresh) сохраняется.
+
+Что умеет: **Drive files** — список файлов, тап скачивает в `~/work`; **Upload file** — загрузить
+файл из песочницы (`~/work/...`) в Drive под заданным именем. Скоуп — полный
+`https://www.googleapis.com/auth/drive` (чтобы видеть и существующие файлы, а не только созданные
+приложением).
 
 ## Сборка
 
@@ -69,12 +189,15 @@ grep, edit), та же сессия и та же история.
 # 1. Забрать и пропатчить нативный бинарник (~235 МБ, в git его нет)
 powershell -ExecutionPolicy Bypass -File tools/build-native.ps1
 
-# 2. Собрать APK
+# 2. Собрать встроенный Python (~26 МБ, в git его нет)
+powershell -ExecutionPolicy Bypass -File tools/build-python.ps1
+
+# 3. Собрать APK
 cd OpenCodeAndroid
 gradle :app:assembleDebug
 ```
 
-Готовый APK: `OpenCodeAndroid/app/build/outputs/apk/debug/app-debug.apk` (~130 МБ, arm64-v8a).
+Готовый APK: `OpenCodeAndroid/app/build/outputs/apk/debug/app-debug.apk` (~158 МБ, arm64-v8a).
 
 Установка на устройство:
 
@@ -83,7 +206,8 @@ adb install -r -g OpenCodeAndroid\app\build\outputs\apk\debug\app-debug.apk
 adb shell am start -n ai.opencode.mobile/.MainActivity
 ```
 
-Смоук-тест на x86_64-эмуляторе (нужен `@opencode/cli-linux-x64-musl`):
+Смоук-тест на x86_64-эмуляторе (нужен `@opencode/cli-linux-x64-musl`; Python в x86-сборке
+не поставляется):
 
 ```powershell
 gradle :app:assembleDebug -PwithX86
@@ -91,7 +215,8 @@ gradle :app:assembleDebug -PwithX86
 
 ## Первый запуск
 
-1. Открыть приложение — сервер поднимается на свободном локальном порту (только `127.0.0.1`).
+1. Открыть приложение — сервер поднимается на свободном локальном порту (только `127.0.0.1`),
+   в это же время распаковывается Python.
 2. Меню (⋮ справа сверху) → **Provider / config editor**.
 3. Вписать конфиг вручную или нажать **Add provider** и заполнить ID / имя / baseURL / apiKey / модель.
 4. **Save & restart** — сервер перезапустится, провайдер появится в списке моделей веб-UI.
@@ -99,16 +224,20 @@ gradle :app:assembleDebug -PwithX86
 Пример конфига — [`examples/opencode.jsonc.example`](examples/opencode.jsonc.example).
 Схема полностью совпадает с десктопной, отличие только в `shell: "/system/bin/sh"`.
 
-Меню приложения: Reload page · Desktop user agent · Provider / config editor · Restart server ·
-Show server log · Share server log file · Copy server URL · Stop server.
+Меню приложения: Reload page · Desktop user agent · Provider / config editor · Terminal ·
+GitHub & Google Drive · Restart server · Show server log · Share server log file ·
+Copy server URL · Stop server.
 
 ## Известные ограничения
 
-- Только **arm64-v8a** (x86_64 — опционально, для эмулятора).
+- Только **arm64-v8a** (x86_64 — опционально, для эмулятора). Python — только arm64.
 - Требуется **Android 8.0+** (minSdk 26).
 - Сервер слушает только loopback; наружу порт не выставляется.
-- APK большой (~130 МБ): внутри лежит весь Node-рантайм и JS-бандл OpenCode.
+- APK большой (~158 МБ): внутри весь Node-рантайм и JS-бандл OpenCode плюс CPython.
 - Один инстанс сервера на приложение.
+- Терминал — pipe-backed (нет PTY): полноэкранные curses-программы не работают.
+- GitHub-интеграция — REST (клон zipball'ом и пуш одного файла), без `git`.
+- Для GitHub и Drive нужны **свои** OAuth-приложения: без `client_id` кнопки Connect бесполезны.
 - Скачивание файлов из веб-UI перехватывается `DownloadListener` + JS-шимом для `blob:`
   (в веб-UI экспорт идёт через `URL.createObjectURL`, поэтому файл читается в момент клика).
 
@@ -116,10 +245,21 @@ Show server log · Share server log file · Copy server URL · Stop server.
 
 ```
 OpenCodeAndroid/            Android-проект (Kotlin, AGP 8.4.2)
+  app/src/main/assets/
+    python.zip              CPython 3.12 musl-aarch64 (генерируется build-python.ps1)
   app/src/main/java/ai/opencode/mobile/
-    MainActivity.kt         WebView, cookie, меню, скачивание, file chooser
-    ServerService.kt        foreground service: запуск сервера, DNS-файлы, лог
+    MainActivity.kt         WebView, cookie, меню, скачивание, file chooser, голосовой ввод
+    ServerService.kt        foreground service: запуск сервера, DNS-файлы, лог, bootstrap Python
     AppEnv.kt               пути, musl-загрузчик, симлинки рантайма, дефолтный конфиг
+    ShellEnv.kt             общий PATH/HOME/XDG/PYTHON для сервера, терминала и агента
+    PythonRuntime.kt        распаковка, ensurepip, обёртки python/pip
+    TerminalSession.kt      постоянный `sh` (pipe-backed), буфер вывода
+    TerminalActivity.kt     экран терминала
+    IntegrationsActivity.kt экран GitHub & Google Drive
+    GitHubIntegration.kt    device flow, список репо, zipball, PUT contents
+    DriveIntegration.kt     OAuth PKCE + loopback-редирект, list/download/upload
+    IntegrationStore.kt     сохранение client_id и токенов
+    HttpJson.kt             HTTP/JSON на HttpURLConnection
     ServerState.kt          состояние сервера + sink логов
     ConfigEditorActivity.kt редактор конфига и диалог «Add provider»
     Jsonc.kt                JSONC (комментарии/висячие запятые) + валидация
@@ -128,8 +268,10 @@ OpenCodeAndroid/            Android-проект (Kotlin, AGP 8.4.2)
                             (+ libopencode.so, генерируется build-native.ps1)
 tools/
   build-native.ps1          скачать и пропатчить CLI из npm
+  build-python.ps1          собрать assets/python.zip из python-build-standalone
   patch-binary.js           /etc/resolv.conf, /etc/hosts → относительные пути
   patch-musl.js             то же для musl-загрузчика
+  elf-info.js               разбор ELF (PT_INTERP, DT_NEEDED) для отладки
   deploy.ps1                сборка → установка → запуск → сбор логов
   make-config.js            сгенерировать android-конфиг из десктопного
   clean-config.js           убрать провайдера из конфига на устройстве
@@ -143,4 +285,5 @@ examples/                   пример конфига
 Проект — обёртка вокруг OpenCode. Сам OpenCode и его CLI-сборки распространяются по своей
 лицензии (см. [sst/opencode](https://github.com/sst/opencode)); бинарники берутся из npm-пакетов
 `@opencode/cli-linux-arm64-musl`. musl-загрузчик и `libstdc++`/`libgcc_s` — из Alpine Linux.
-Код обёртки в этом репозитории можно использовать свободно.
+CPython — из [python-build-standalone](https://github.com/astral-sh/python-build-standalone)
+(PSF License). Код обёртки в этом репозитории можно использовать свободно.

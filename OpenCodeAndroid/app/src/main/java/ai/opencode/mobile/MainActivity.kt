@@ -7,6 +7,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
@@ -14,6 +15,9 @@ import android.os.Bundle
 import android.os.Environment
 import android.os.Message
 import android.provider.MediaStore
+import android.speech.RecognitionListener
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
 import android.util.Base64
 import android.util.Log
 import android.view.View
@@ -90,6 +94,27 @@ class MainActivity : AppCompatActivity() {
 
     private val prefs by lazy { getSharedPreferences("ui", Context.MODE_PRIVATE) }
 
+    /** Live recogniser used for the in-app microphone button. */
+    private var speechRecognizer: SpeechRecognizer? = null
+    private var listening = false
+
+    private val voicePermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) {
+                beginListening()
+            } else {
+                Toast.makeText(this, R.string.voice_permission, Toast.LENGTH_LONG).show()
+            }
+        }
+
+    /** Fallback path: the system recogniser dialog, used when the service API misbehaves. */
+    private val voiceDialog =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode != RESULT_OK) return@registerForActivityResult
+            val words = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+            deliverVoiceText(words?.firstOrNull().orEmpty())
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -128,6 +153,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         dropPopup()
+        releaseRecognizer()
         super.onDestroy()
     }
 
@@ -550,6 +576,7 @@ class MainActivity : AppCompatActivity() {
     // ------------------------------------------------------------------------ ui
 
     private fun wireUi() {
+        findViewById<ImageButton>(R.id.btnMic).setOnClickListener { startVoiceInput() }
         findViewById<ImageButton>(R.id.btnReload).setOnClickListener { webView.reload() }
         findViewById<ImageButton>(R.id.btnMenu).setOnClickListener { showMenu(it) }
         findViewById<View>(R.id.btnRetry).setOnClickListener {
@@ -572,6 +599,8 @@ class MainActivity : AppCompatActivity() {
             isChecked = desktopMode
         }
         popup.menu.add(0, MENU_CONFIG, 2, R.string.menu_config)
+        popup.menu.add(0, MENU_TERMINAL, 9, R.string.menu_terminal)
+        popup.menu.add(0, MENU_INTEGRATIONS, 10, R.string.menu_integrations)
         popup.menu.add(0, MENU_RESTART, 3, R.string.menu_restart)
         popup.menu.add(0, MENU_LOGS, 4, R.string.menu_logs)
         popup.menu.add(0, MENU_SHARE_LOG, 5, R.string.menu_share_log)
@@ -583,6 +612,8 @@ class MainActivity : AppCompatActivity() {
                 MENU_RELOAD -> webView.reload()
                 MENU_DESKTOP -> toggleDesktopMode(!desktopMode)
                 MENU_CONFIG -> startActivity(Intent(this, ConfigEditorActivity::class.java))
+                MENU_TERMINAL -> startActivity(Intent(this, TerminalActivity::class.java))
+                MENU_INTEGRATIONS -> startActivity(Intent(this, IntegrationsActivity::class.java))
                 MENU_RESTART -> {
                     loadedPort = 0
                     ServerService.restart(this)
@@ -666,6 +697,154 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // ------------------------------------------------------------------------ voice
+
+    /**
+     * Voice input inserts the recognised phrase into whatever the web UI has focused (falling
+     * back to the chat composer). The text is pushed through `execCommand('insertText')` so the
+     * SolidJS store sees a real `input` event instead of a silently overwritten `value`.
+     */
+    private fun startVoiceInput() {
+        if (listening) {
+            releaseRecognizer()
+            setMicActive(false)
+            return
+        }
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            voicePermission.launch(Manifest.permission.RECORD_AUDIO)
+            return
+        }
+        beginListening()
+    }
+
+    private fun beginListening() {
+        val available = runCatching { SpeechRecognizer.isRecognitionAvailable(this) }.getOrDefault(false)
+        if (!available) {
+            launchSystemRecognizer()
+            return
+        }
+        val recognizer = try {
+            speechRecognizer ?: SpeechRecognizer.createSpeechRecognizer(this).also { created ->
+                created.setRecognitionListener(voiceListener)
+                speechRecognizer = created
+            }
+        } catch (t: Throwable) {
+            Log.w(TAG, "cannot create recogniser", t)
+            launchSystemRecognizer()
+            return
+        }
+        listening = true
+        setMicActive(true)
+        Toast.makeText(this, R.string.voice_listening, Toast.LENGTH_SHORT).show()
+        try {
+            recognizer.startListening(voiceIntent())
+        } catch (t: Throwable) {
+            Log.w(TAG, "startListening failed", t)
+            listening = false
+            setMicActive(false)
+            launchSystemRecognizer()
+        }
+    }
+
+    private fun voiceIntent(): Intent =
+        Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
+            putExtra(RecognizerIntent.EXTRA_PROMPT, getString(R.string.voice_listening))
+            putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, packageName)
+        }
+
+    private fun launchSystemRecognizer() {
+        try {
+            voiceDialog.launch(voiceIntent())
+        } catch (t: Throwable) {
+            Log.w(TAG, "no speech recogniser", t)
+            Toast.makeText(this, R.string.voice_unavailable, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun releaseRecognizer() {
+        listening = false
+        val recognizer = speechRecognizer ?: return
+        speechRecognizer = null
+        try {
+            recognizer.cancel()
+            recognizer.destroy()
+        } catch (t: Throwable) {
+            Log.w(TAG, "cannot release recogniser", t)
+        }
+    }
+
+    private fun setMicActive(active: Boolean) {
+        findViewById<ImageButton>(R.id.btnMic).imageTintList =
+            ColorStateList.valueOf(if (active) 0xFF66B2FF.toInt() else 0xFFD0D0D0.toInt())
+    }
+
+    private val voiceListener = object : RecognitionListener {
+        override fun onReadyForSpeech(params: Bundle?) = Unit
+        override fun onBeginningOfSpeech() = Unit
+        override fun onRmsChanged(rmsdB: Float) = Unit
+        override fun onBufferReceived(buffer: ByteArray?) = Unit
+        override fun onEndOfSpeech() = Unit
+        override fun onPartialResults(partialResults: Bundle?) = Unit
+        override fun onEvent(eventType: Int, params: Bundle?) = Unit
+
+        override fun onError(error: Int) {
+            listening = false
+            setMicActive(false)
+            Log.w(TAG, "voice error $error")
+            when (error) {
+                SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT ->
+                    Toast.makeText(this@MainActivity, R.string.voice_no_speech, Toast.LENGTH_SHORT).show()
+
+                SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS ->
+                    Toast.makeText(this@MainActivity, R.string.voice_permission, Toast.LENGTH_LONG).show()
+
+                SpeechRecognizer.ERROR_CLIENT, SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> {
+                    // The service API is unhappy (common on vendor ROMs): use the system dialog.
+                    releaseRecognizer()
+                    launchSystemRecognizer()
+                }
+
+                else -> Toast.makeText(
+                    this@MainActivity,
+                    getString(R.string.voice_error, errorName(error)),
+                    Toast.LENGTH_LONG,
+                ).show()
+            }
+        }
+
+        override fun onResults(results: Bundle?) {
+            listening = false
+            setMicActive(false)
+            val words = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+            deliverVoiceText(words?.firstOrNull().orEmpty())
+        }
+    }
+
+    private fun errorName(code: Int): String = when (code) {
+        SpeechRecognizer.ERROR_AUDIO -> "audio"
+        SpeechRecognizer.ERROR_NETWORK -> "network"
+        SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "network timeout"
+        SpeechRecognizer.ERROR_SERVER -> "server"
+        else -> "code $code"
+    }
+
+    private fun deliverVoiceText(text: String) {
+        val phrase = text.trim()
+        if (phrase.isEmpty()) {
+            Toast.makeText(this, R.string.voice_no_speech, Toast.LENGTH_SHORT).show()
+            return
+        }
+        webView.evaluateJavascript(voiceInsertScript(phrase)) { raw ->
+            val result = runCatching { JSONTokener(raw).nextValue() as? String }.getOrNull()
+            if (result != "OK") {
+                Toast.makeText(this, R.string.voice_no_field, Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
     private fun askNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
@@ -684,6 +863,8 @@ class MainActivity : AppCompatActivity() {
         private const val MENU_SHARE_LOG = 8
         private const val MENU_COPY_URL = 6
         private const val MENU_STOP = 7
+        private const val MENU_TERMINAL = 9
+        private const val MENU_INTEGRATIONS = 10
 
         private const val DESKTOP_UA =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
@@ -720,6 +901,70 @@ class MainActivity : AppCompatActivity() {
                 window.__ocPendingDownload = pending;
               }, true);
             })();
+        """.trimIndent()
+
+        /**
+         * Inserts a phrase into the focused field of the web UI. `document.activeElement` is
+         * preferred; otherwise the visible editable element closest to the bottom of the page is
+         * used, which is the chat composer in the opencode UI. `execCommand('insertText')` is used
+         * first because it emits the `beforeinput`/`input` pair the SolidJS store listens for.
+         */
+        private fun voiceInsertScript(text: String): String = """
+            (function (text) {
+              function visible(el) {
+                if (!el) return false;
+                var r = el.getBoundingClientRect();
+                if (r.width <= 0 || r.height <= 0) return false;
+                var s = window.getComputedStyle(el);
+                return s.visibility !== 'hidden' && s.display !== 'none';
+              }
+              function editable(el) {
+                if (!el || !el.tagName) return false;
+                var tag = el.tagName;
+                if (tag === 'TEXTAREA') return !el.readOnly && !el.disabled;
+                if (tag === 'INPUT') {
+                  var type = (el.type || 'text').toLowerCase();
+                  var ok = type === 'text' || type === 'search' || type === 'url' ||
+                           type === 'email' || type === 'tel';
+                  return ok && !el.readOnly && !el.disabled;
+                }
+                return el.isContentEditable === true;
+              }
+              var target = editable(document.activeElement) ? document.activeElement : null;
+              if (!target) {
+                var list = Array.prototype.slice.call(
+                  document.querySelectorAll('textarea, [contenteditable="true"], input')
+                ).filter(function (el) { return editable(el) && visible(el); });
+                list.sort(function (a, b) {
+                  return b.getBoundingClientRect().top - a.getBoundingClientRect().top;
+                });
+                target = list[0] || null;
+              }
+              if (!target) return 'NOFIELD';
+              try { target.focus(); } catch (e) {}
+              if (target.isContentEditable) {
+                var sel = window.getSelection();
+                var range = document.createRange();
+                range.selectNodeContents(target);
+                range.collapse(false);
+                sel.removeAllRanges();
+                sel.addRange(range);
+              } else {
+                var len = (target.value || '').length;
+                try { target.setSelectionRange(len, len); } catch (e) {}
+              }
+              var inserted = false;
+              try { inserted = document.execCommand('insertText', false, text); } catch (e) { inserted = false; }
+              if (!inserted) {
+                if (target.isContentEditable) {
+                  target.textContent = (target.textContent || '') + text;
+                } else {
+                  target.value = (target.value || '') + text;
+                }
+                target.dispatchEvent(new Event('input', { bubbles: true }));
+              }
+              return 'OK';
+            })(${JSONObject.quote(text)})
         """.trimIndent()
     }
 }

@@ -17,9 +17,10 @@ captures/
 *.jks
 lint-results*
 
-# ---- large native payloads (fetched by tools/build-native.ps1) ----
+# ---- large native payloads (fetched by tools/build-native.ps1 / build-python.ps1) ----
 OpenCodeAndroid/app/src/main/jniLibs/arm64-v8a/libopencode.so
 OpenCodeAndroid/app/src/x86/jniLibs/x86_64/libopencode.so
+OpenCodeAndroid/app/src/main/assets/python.zip
 buildenv/dl/**/*.tgz
 *.tgz
 

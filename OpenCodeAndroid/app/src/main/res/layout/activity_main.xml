@@ -29,6 +29,15 @@
             android:textSize="12sp" />
 
         <ImageButton
+            android:id="@+id/btnMic"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/action_voice"
+            android:src="@android:drawable/ic_btn_speak_now"
+            app:tint="#D0D0D0" />
+
+        <ImageButton
             android:id="@+id/btnReload"
             android:layout_width="44dp"
             android:layout_height="44dp"

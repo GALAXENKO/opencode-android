@@ -11,8 +11,8 @@ android {
         applicationId = "ai.opencode.mobile"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "2.2.5"
+        versionCode = 2
+        versionName = "2.3.0"
     }
 
     buildTypes {
@@ -45,6 +45,9 @@ android {
     }
     androidResources {
         noCompress += "pem"
+        // `python.zip` is extracted by PythonRuntime on first boot; leaving it stored keeps the
+        // APK build fast and lets ZipInputStream stream straight out of the asset.
+        noCompress += "zip"
     }
 
     sourceSets {

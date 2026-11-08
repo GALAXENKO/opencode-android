@@ -181,9 +181,18 @@ class ServerService : Service() {
                 )
         )
 
-        val tmp = AppEnv.tmp(this)
         var port = freePort()
         var attempt = 0
+
+        // Python must be in place before the server starts: the agent's `shell` tool
+        // inherits PATH from this process, and the wrappers live in files/bin.
+        val pythonReady = PythonRuntime.ensure(this) { ServerState.appendLog(it) }
+        ShellEnv.ensureDirs(this)
+        ServerState.appendLog(ShellEnv.describe(this))
+        ServerState.appendLog(
+            if (pythonReady) "python: ready at ${PythonRuntime.exe(this)}"
+            else "python: not available"
+        )
 
         while (attempt < 3) {
             if (stopping) return
@@ -200,23 +209,10 @@ class ServerService : Service() {
             pb.redirectErrorStream(true)
 
             val env = pb.environment()
-            env["HOME"] = home.absolutePath
-            env["XDG_CONFIG_HOME"] = AppEnv.configHome(this).absolutePath
-            env["XDG_DATA_HOME"] = AppEnv.dataHome(this).absolutePath
-            env["XDG_CACHE_HOME"] = AppEnv.cacheHome(this).absolutePath
-            env["XDG_STATE_HOME"] = AppEnv.stateHome(this).absolutePath
-            env["TMPDIR"] = tmp.absolutePath
-            env["TMP"] = tmp.absolutePath
-            env["TEMP"] = tmp.absolutePath
-            env["PATH"] = "/system/bin:/system/xbin:/vendor/bin:/product/bin:/usr/bin:/bin"
-            env["SHELL"] = "/system/bin/sh"
-            env["TERM"] = "xterm-256color"
-            env["LANG"] = "en_US.UTF-8"
+            ShellEnv.apply(this, pb, python = pythonReady)
             env["OPENCODE_PASSWORD"] = password
             env["OPENCODE_DISABLE_AUTOUPDATE"] = "1"
             env["OPENCODE_DISABLE_FFF"] = "1"
-            env.remove("LD_PRELOAD")
-            env.remove("LD_LIBRARY_PATH")
 
             ServerState.appendLog("starting: ${argv.joinToString(" ")} (cwd=$home)")
 

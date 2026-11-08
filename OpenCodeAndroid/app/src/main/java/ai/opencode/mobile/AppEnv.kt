@@ -29,9 +29,12 @@ object AppEnv {
     fun cacheHome(ctx: Context): File = File(home(ctx), ".cache")
     fun stateHome(ctx: Context): File = File(home(ctx), ".local/state")
     fun tmp(ctx: Context): File = File(home(ctx), "tmp")
-fun logFile(ctx: Context): File = File(home(ctx), "logs/opencode.log")
+    fun logFile(ctx: Context): File = File(home(ctx), "logs/opencode.log")
     fun binDir(ctx: Context): File = File(ctx.filesDir, "bin")
     fun libDir(ctx: Context): File = File(ctx.filesDir, "lib")
+
+    /** Default place for repositories checked out from GitHub. */
+    fun workDir(ctx: Context): File = File(home(ctx), "work")
 
     fun ensureDirs(ctx: Context) {
         for (dir in listOf(
@@ -42,6 +45,8 @@ fun logFile(ctx: Context): File = File(home(ctx), "logs/opencode.log")
             File(stateHome(ctx), "opencode"),
             tmp(ctx),
             File(home(ctx), "logs"),
+            File(home(ctx), ".local/bin"),
+            workDir(ctx),
             binDir(ctx),
             libDir(ctx),
         )) {
