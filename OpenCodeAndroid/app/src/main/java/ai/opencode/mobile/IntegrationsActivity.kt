@@ -23,15 +23,12 @@ import java.io.IOException
 import java.util.Locale
 
 /**
- * Connects the app to the user's own GitHub account and Google Drive.
+ * Connects the app to GitHub and Google Drive.
  *
- * Neither provider ships a client secret with the APK: both use the *user's* OAuth
- * client id, entered here once.
- *
- *  - GitHub uses the OAuth **device flow** — the user types a short code on
- *    github.com, so no redirect URI and no secret are involved.
- *  - Google uses **PKCE** with the loopback redirect that Google allows for
- *    "Desktop app" clients; the code is caught by a one-shot server on 127.0.0.1.
+ * No client secret ships with the APK: GitHub uses a bundled public client id with the
+ * **device flow** (the user only types a short code on github.com), and Drive uses the
+ * *user's* own "Desktop app" client id with **PKCE** plus the loopback redirect Google
+ * allows for that client type, caught by a one-shot server on 127.0.0.1.
  *
  * Files land in `~/work` (see [AppEnv.workDir]) so the embedded agent can open them
  * with the same tools it uses for everything else.
@@ -158,11 +155,10 @@ class IntegrationsActivity : AppCompatActivity() {
     // ------------------------------------------------------------------- github
 
     private fun connectGithub() {
-        val clientId = githubClientId.text.toString().trim()
-        if (clientId.isEmpty()) {
-            toast(R.string.integrations_need_client_id)
-            return
-        }
+        val typed = githubClientId.text.toString().trim()
+        // An empty field means "use the app's own OAuth App" instead of an error.
+        val clientId = typed.ifEmpty { IntegrationStore.DEFAULT_GITHUB_CLIENT_ID }
+        if (typed.isEmpty()) githubClientId.setText(clientId)
         IntegrationStore.setGithubClientId(this, clientId)
         bg(getString(R.string.integrations_github_connect_started)) {
             val code = GitHubIntegration.startDeviceFlow(clientId)

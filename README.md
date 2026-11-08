@@ -133,10 +133,15 @@ files/bin/pip, pip3              обёртки (python -m pip)
 
 ## GitHub и Google Drive
 
-Меню ⋮ → **GitHub & Google Drive**. Ключи **свои**: приложение не содержит чужих `client_id`,
-поэтому лимиты и доступы — ваши.
+Меню ⋮ → **GitHub & Google Drive**. Для GitHub `client_id` уже вшит в сборку и подставлен
+в поле — достаточно нажать **Connect**. Для Google Drive нужен **свой** `client_id` (см. ниже).
 
 ### GitHub (OAuth App + device flow)
+
+В сборке уже есть OAuth App (`Ov23lii3yOP22kR3xYV9`), поэтому поле *Client ID* заполнено
+заранее: нажмите **Connect** и подтвердите код на `github.com/login/device`.
+
+Свой OAuth App нужен, только если хотите отдельные лимиты или свой аккаунт-владелец:
 
 1. Открыть <https://github.com/settings/developers> → **OAuth Apps** → **New OAuth App**.
 2. Заполнить ровно так:
@@ -237,7 +242,8 @@ Copy server URL · Stop server.
 - Один инстанс сервера на приложение.
 - Терминал — pipe-backed (нет PTY): полноэкранные curses-программы не работают.
 - GitHub-интеграция — REST (клон zipball'ом и пуш одного файла), без `git`.
-- Для GitHub и Drive нужны **свои** OAuth-приложения: без `client_id` кнопки Connect бесполезны.
+- Для Google Drive нужен **свой** OAuth client (Desktop app); GitHub-приложение уже вшито
+  (`Ov23lii3yOP22kR3xYV9`), но свой `client_id` можно вписать вместо него.
 - Скачивание файлов из веб-UI перехватывается `DownloadListener` + JS-шимом для `blob:`
   (в веб-UI экспорт идёт через `URL.createObjectURL`, поэтому файл читается в момент клика).
 

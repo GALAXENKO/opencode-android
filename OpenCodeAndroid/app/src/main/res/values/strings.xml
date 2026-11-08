@@ -105,7 +105,7 @@
     <string name="menu_integrations">GitHub &amp; Google Drive</string>
     <string name="integrations_title">GitHub &amp; Google Drive</string>
     <string name="integrations_github">GitHub</string>
-    <string name="integrations_github_help">1. Open github.com/settings/developers → OAuth Apps → New OAuth App.\n2. Application name: OpenCode Android.\n3. Homepage URL: https://opencode.ai\n4. Authorization callback URL: https://opencode.ai (not used by the device flow).\n5. In the created app tick “Enable Device Flow” and press Update.\n6. Paste the Client ID here and press Connect.</string>
+    <string name="integrations_github_help">The field is already filled with the built-in OAuth App — just press Connect and type the shown code on github.com/login/device.\nTo use your own app: github.com/settings/developers → OAuth Apps → New OAuth App; name “OpenCode Android”, homepage https://opencode.ai, callback https://opencode.ai, tick “Enable Device Flow”, then paste your Client ID here.</string>
     <string name="integrations_github_client_id">GitHub OAuth App Client ID</string>
     <string name="integrations_drive">Google Drive</string>
     <string name="integrations_drive_help">1. console.cloud.google.com → APIs &amp; Services → enable the “Google Drive API”.\n2. Credentials → Create credentials → OAuth client ID.\n3. Application type: Desktop app.\n4. Paste the Client ID here and press Connect — no client secret is needed.</string>

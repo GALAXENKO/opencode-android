@@ -7,13 +7,21 @@ import java.io.IOException
  * Persistent storage for the optional cloud integrations.
  *
  * Everything is kept in a private `SharedPreferences` file: the GitHub OAuth client id +
- * access token, and the Google OAuth client id + refresh token. The client ids are
- * supplied by the user (this build ships no secrets, so it works with *your* OAuth apps
- * only) and the tokens never leave the app sandbox.
+ * access token, and the Google OAuth client id + refresh token. The GitHub client id has a
+ * working default bundled in ([DEFAULT_GITHUB_CLIENT_ID]); the Drive one is supplied by the
+ * user (no secrets ship with the APK) and the tokens never leave the app sandbox.
  */
 object IntegrationStore {
 
     private const val FILE = "integrations"
+
+    /**
+     * OAuth App that ships with the build, so GitHub works out of the box.
+     *
+     * This is a public client id, not a secret: device flow needs no client secret, so
+     * keeping it here is safe. The user can still paste their own id to override it.
+     */
+    const val DEFAULT_GITHUB_CLIENT_ID = "Ov23lii3yOP22kR3xYV9"
 
     // ------------------------------------------------------------------ storage
 
@@ -28,7 +36,9 @@ object IntegrationStore {
 
     // ------------------------------------------------------------------- github
 
-    fun githubClientId(ctx: Context): String = get(ctx, "github_client_id")
+    /** Client id to use: the user's own when set, otherwise the bundled default. */
+    fun githubClientId(ctx: Context): String =
+        get(ctx, "github_client_id").ifEmpty { DEFAULT_GITHUB_CLIENT_ID }
 
     fun setGithubClientId(ctx: Context, value: String) = put(ctx, "github_client_id", value.trim())
 
