@@ -36,6 +36,9 @@ object AppEnv {
     /** Default place for repositories checked out from GitHub. */
     fun workDir(ctx: Context): File = File(home(ctx), "work")
 
+    /** Downloaded GGUF weights for the built-in local model (see [LocalAiRuntime]). */
+    fun modelsDir(ctx: Context): File = File(home(ctx), "models")
+
     fun ensureDirs(ctx: Context) {
         for (dir in listOf(
             home(ctx),
@@ -47,6 +50,7 @@ object AppEnv {
             File(home(ctx), "logs"),
             File(home(ctx), ".local/bin"),
             workDir(ctx),
+            modelsDir(ctx),
             binDir(ctx),
             libDir(ctx),
         )) {

@@ -15,8 +15,8 @@ android {
         // Python runtime (and every `pip`-installed console script) unrunnable. Termux
         // pins the same value for the same reason.
         targetSdk = 28
-        versionCode = 5
-        versionName = "2.3.3"
+        versionCode = 6
+        versionName = "2.4.0"
     }
 
     buildTypes {

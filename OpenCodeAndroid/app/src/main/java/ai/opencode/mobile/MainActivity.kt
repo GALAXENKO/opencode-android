@@ -601,6 +601,7 @@ class MainActivity : AppCompatActivity() {
         popup.menu.add(0, MENU_CONFIG, 2, R.string.menu_config)
         popup.menu.add(0, MENU_TERMINAL, 9, R.string.menu_terminal)
         popup.menu.add(0, MENU_INTEGRATIONS, 10, R.string.menu_integrations)
+        popup.menu.add(0, MENU_LOCAL_AI, 11, LocalAiLocale.text(this, R.string.menu_local_ai))
         popup.menu.add(0, MENU_RESTART, 3, R.string.menu_restart)
         popup.menu.add(0, MENU_LOGS, 4, R.string.menu_logs)
         popup.menu.add(0, MENU_SHARE_LOG, 5, R.string.menu_share_log)
@@ -614,6 +615,7 @@ class MainActivity : AppCompatActivity() {
                 MENU_CONFIG -> startActivity(Intent(this, ConfigEditorActivity::class.java))
                 MENU_TERMINAL -> startActivity(Intent(this, TerminalActivity::class.java))
                 MENU_INTEGRATIONS -> startActivity(Intent(this, IntegrationsActivity::class.java))
+                MENU_LOCAL_AI -> startActivity(Intent(this, LocalAiActivity::class.java))
                 MENU_RESTART -> {
                     loadedPort = 0
                     ServerService.restart(this)
@@ -865,6 +867,7 @@ class MainActivity : AppCompatActivity() {
         private const val MENU_STOP = 7
         private const val MENU_TERMINAL = 9
         private const val MENU_INTEGRATIONS = 10
+        private const val MENU_LOCAL_AI = 11
 
         private const val DESKTOP_UA =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"

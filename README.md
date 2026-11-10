@@ -7,7 +7,8 @@
 grep, edit), та же сессия и та же история.
 
 Сверху — мобильные удобства: **голосовой ввод**, **встроенный терминал**, **полноценный Python
-3.12 с pip** и **привязка своего GitHub и Google Drive** для работы с файлами.
+3.12 с pip**, **привязка своего GitHub и Google Drive** для работы с файлами и **локальный ИИ**
+(llama.cpp с GGUF-моделью прямо на телефоне, без интернета).
 
 ## Что работает
 
@@ -22,6 +23,7 @@ grep, edit), та же сессия и та же история.
 | **Python 3.12 + pip** внутри APK, виден и агенту, и терминалу | ✅ |
 | **GitHub** — вход по device flow, клон репозитория в `~/work`, пуш файла | ✅ |
 | **Google Drive** — вход по OAuth (PKCE), список, скачивание, загрузка | ✅ |
+| **Локальный ИИ** — llama.cpp внутри APK, GGUF на устройстве, офлайн | ✅ |
 | Добавление своего провайдера в конфиг (как на десктопе) | ✅ |
 | Редактор конфига + диалог «Add provider» | ✅ |
 | Экспорт/скачивание файлов из UI (включая blob) в `Download` | ✅ |
@@ -131,6 +133,47 @@ files/bin/pip, pip3              обёртки (python -m pip)
 - Обновить/пересобрать рантайм: `tools/build-python.ps1` → `app/src/main/assets/python.zip`
   (в git не коммитится, 26 МБ).
 
+## Локальный ИИ
+
+Меню ⋮ → **Локальный ИИ**. Модель работает **на самом устройстве**, без интернета и без
+облачных провайдеров: внутри APK лежит собранный из исходников `llama.cpp` (`llama-server`),
+который запускается дочерним процессом на `127.0.0.1`.
+
+Отдельного чата здесь нет намеренно — он уже есть в opencode. Пока движок работает, приложение
+дописывает в `opencode.jsonc` провайдера `local` (`@opencode/ai/providers/openai-compatible`,
+`baseURL: http://127.0.0.1:<порт>/v1`) и перезапускает сервер, после чего модель появляется
+в **обычном списке моделей** веб-UI и с ней можно работать как с любой другой.
+
+1. **Модель** → выбрать из списка → **Загрузить** (GGUF кладётся в `~/models`, ~0.5–2 ГБ)
+   или **Указать файл…** и дать путь к своему `.gguf`.
+2. **Параметры** — размер контекста (по умолчанию 4096 токенов) и число потоков (0 = авто).
+3. **Запустить** — `llama-server` поднимается на свободном порту, `/health` ждётся до 180 с,
+   затем провайдер попадает в конфиг. В opencode остаётся выбрать модель `local`.
+4. **Остановить** — процесс убивается, провайдер `local` удаляется из конфига, чтобы там не
+   висела модель, которая не может ответить.
+
+Каталог моделей (ссылки проверены, качается напрямую с Hugging Face):
+
+| Модель | Размер | Для чего |
+|---|---|---|
+| Qwen2.5-0.5B-Instruct | 491 МБ | самый быстрый, короткие ответы |
+| Qwen2.5-1.5B-Instruct | 1.12 ГБ | баланс качества и скорости |
+| Qwen2.5-Coder-1.5B | 1.12 ГБ | автодополнение кода, рефакторинг |
+| Gemma-3-1B-it | 806 МБ | многоязычные ответы, пересказы |
+| Qwen3-1.7B | 1.28 ГБ | пошаговые рассуждения |
+| Qwen2.5-Coder-3B | 1.93 ГБ | лучшее качество, нужно 8 ГБ ОЗУ |
+
+**Язык интерфейса.** У экрана нет своего переключателя языка: `LocalAiLocale` читает cookie
+`oc_locale`, которую пишет сам opencode, когда вы меняете язык в его настройках, и применяет
+ту же локаль к своим ресурсам. Выбрали в opencode «Русский» — переведётся и пункт меню,
+и весь экран локального ИИ. Сейчас переведены `ru`, `uk`, `de`; для остальных локалей
+показывается английский текст.
+
+`llama-server` собран под **arm64-v8a**, линкуется с bionic (`/system/bin/linker64`) и поэтому
+запускается напрямую, без musl-загрузчика. Веб-UI внутри бинарника отключён (`--no-webui`) —
+он не нужен. В APK он лежит как `jniLibs/arm64-v8a/libllama-server.so` (AGP пакует только
+`*.so`), ужат `llvm-strip --strip-all` до ~15 МБ.
+
 ## GitHub и Google Drive
 
 Меню ⋮ → **GitHub & Google Drive**. Для GitHub `client_id` уже вшит в сборку и подставлен
@@ -202,7 +245,20 @@ cd OpenCodeAndroid
 gradle :app:assembleDebug
 ```
 
-Готовый APK: `OpenCodeAndroid/app/build/outputs/apk/debug/app-debug.apk` (~158 МБ, arm64-v8a).
+Готовый APK: `OpenCodeAndroid/app/build/outputs/apk/debug/app-debug.apk` (~166 МБ, arm64-v8a).
+
+`llama-server` для локального ИИ уже лежит в репозитории
+(`jniLibs/arm64-v8a/libllama-server.so`, 15 МБ) — NDK для обычной сборки не нужен. Пересобрать
+его из исходников (нужны NDK r27+ и CMake 3.22+):
+
+```powershell
+git clone --depth 1 https://github.com/ggml-org/llama.cpp
+cmake -B build-llama -S llama.cpp -G Ninja -DCMAKE_TOOLCHAIN_FILE=<ndk>/build/cmake/android.toolchain.cmake `
+  -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-26 -DLLAMA_CURL=OFF -DGGML_OPENMP=OFF `
+  -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_SERVER=ON
+cmake --build build-llama --target llama-server -j
+llvm-strip --strip-all build-llama/bin/llama-server
+```
 
 Установка на устройство:
 
@@ -230,7 +286,7 @@ gradle :app:assembleDebug -PwithX86
 Схема полностью совпадает с десктопной, отличие только в `shell: "/system/bin/sh"`.
 
 Меню приложения: Reload page · Desktop user agent · Provider / config editor · Terminal ·
-GitHub & Google Drive · Restart server · Show server log · Share server log file ·
+GitHub & Google Drive · Local AI · Restart server · Show server log · Share server log file ·
 Copy server URL · Stop server.
 
 ## Известные ограничения
@@ -244,7 +300,7 @@ Copy server URL · Stop server.
   Побочный эффект — старый `targetSdk` включает режим совместимости для части API; для
   приложения-обёртки с WebView и локальным сервером это несущественно.
 - Сервер слушает только loopback; наружу порт не выставляется.
-- APK большой (~158 МБ): внутри весь Node-рантайм и JS-бандл OpenCode плюс CPython.
+- APK большой (~166 МБ): внутри весь Node-рантайм и JS-бандл OpenCode, CPython и llama.cpp.
 - Один инстанс сервера на приложение.
 - Терминал — pipe-backed (нет PTY): полноэкранные curses-программы не работают.
 - GitHub-интеграция — REST (клон zipball'ом и пуш одного файла), без `git`.
@@ -252,6 +308,9 @@ Copy server URL · Stop server.
   (`Ov23lii3yOP22kR3xYV9`), но свой `client_id` можно вписать вместо него.
 - Скачивание файлов из веб-UI перехватывается `DownloadListener` + JS-шимом для `blob:`
   (в веб-UI экспорт идёт через `URL.createObjectURL`, поэтому файл читается в момент клика).
+- Локальный ИИ: только **arm64-v8a**, модель целиком в ОЗУ — для 3B нужно ~8 ГБ памяти.
+  Движок один, порт локальный, наружу не выставляется; при остановке провайдер `local`
+  удаляется из конфига.
 
 ## Структура репозитория
 
@@ -271,12 +330,16 @@ OpenCodeAndroid/            Android-проект (Kotlin, AGP 8.4.2)
     GitHubIntegration.kt    device flow, список репо, zipball, PUT contents
     DriveIntegration.kt     OAuth PKCE + loopback-редирект, list/download/upload
     IntegrationStore.kt     сохранение client_id и токенов
+    LocalAiActivity.kt      экран локального ИИ: модель, параметры, старт/стоп
+    LocalAiRuntime.kt       запуск llama-server, каталог моделей, провайдер в конфиге
+    LocalAiStore.kt         выбранная модель и параметры движка
+    LocalAiLocale.kt        язык экрана = язык opencode (cookie oc_locale)
     HttpJson.kt             HTTP/JSON на HttpURLConnection
     ServerState.kt          состояние сервера + sink логов
     ConfigEditorActivity.kt редактор конфига и диалог «Add provider»
     Jsonc.kt                JSONC (комментарии/висячие запятые) + валидация
     OpenCodeAuth.kt         вычисление сессионной cookie
-  app/src/main/jniLibs/     ld-musl-aarch64.so, libstdcxx.so, libgcc_s.so
+  app/src/main/jniLibs/     ld-musl-aarch64.so, libstdcxx.so, libgcc_s.so, libllama-server.so
                             (+ libopencode.so, генерируется build-native.ps1)
 tools/
   build-native.ps1          скачать и пропатчить CLI из npm

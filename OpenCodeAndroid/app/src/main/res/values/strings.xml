@@ -160,4 +160,78 @@
     <string name="integrations_log_title">Activity</string>
     <string name="integrations_disconnected_log">Disconnected</string>
     <string name="integrations_error">Error: %1$s</string>
+
+    <!-- Local AI. This screen follows the language chosen inside opencode (oc_locale). -->
+    <string name="menu_local_ai">Local AI</string>
+    <string name="local_ai_title">Local AI</string>
+    <string name="local_ai_model_section">Model</string>
+    <string name="local_ai_model_help">Runs llama.cpp on this device. While the engine is running the model is added to opencode as a provider named “Local AI”, so it shows up in the normal model picker.</string>
+    <string name="local_ai_no_model">No model selected</string>
+    <string name="local_ai_model_selected">%1$s · %2$s</string>
+    <string name="local_ai_model_missing">%1$s · file missing, download it again</string>
+    <string name="local_ai_model_custom">%1$s · custom file</string>
+    <string name="local_ai_pick">Choose model</string>
+    <string name="local_ai_download">Download</string>
+    <string name="local_ai_use_file">Use file…</string>
+    <string name="local_ai_delete">Delete</string>
+    <string name="local_ai_pick_title">Model</string>
+    <string name="local_ai_pick_item">%1$s — %2$s</string>
+    <string name="local_ai_engine_section">Engine</string>
+    <string name="local_ai_engine_help">llama-server listens on 127.0.0.1 only. Starting it restarts the opencode server once so the new provider is loaded.</string>
+    <string name="local_ai_engine_stopped">Stopped</string>
+    <string name="local_ai_engine_running">Running on 127.0.0.1:%1$d</string>
+    <string name="local_ai_start">Start</string>
+    <string name="local_ai_stop">Stop</string>
+    <string name="local_ai_params">Parameters</string>
+    <string name="local_ai_params_summary">Context %1$d tokens · %2$d threads</string>
+    <string name="local_ai_params_title">Engine parameters</string>
+    <string name="local_ai_params_context">Context size (tokens)</string>
+    <string name="local_ai_params_threads">Threads (0 = auto)</string>
+    <string name="local_ai_params_help">A larger context uses more memory. Changes apply the next time the engine starts.</string>
+    <string name="local_ai_params_bad">Enter numbers for both fields</string>
+    <string name="local_ai_params_saved">Parameters saved</string>
+    <string name="local_ai_log_title">Engine log</string>
+    <string name="local_ai_busy">Please wait…</string>
+    <string name="local_ai_pick_first">Choose a model first</string>
+    <string name="local_ai_already_downloaded">This model is already downloaded</string>
+    <string name="local_ai_download_running">Downloading %1$s… %2$s</string>
+    <string name="local_ai_download_ok">Downloaded %1$s</string>
+    <string name="local_ai_file_title">GGUF file</string>
+    <string name="local_ai_file_hint">Path to a .gguf file (~/models/… or absolute)</string>
+    <string name="local_ai_file_ok">Use file</string>
+    <string name="local_ai_file_missing">File not found: %1$s</string>
+    <string name="local_ai_delete_title">Delete model file?</string>
+    <string name="local_ai_delete_text">%1$s will be removed from the device.</string>
+    <string name="local_ai_delete_yes">Delete</string>
+    <string name="local_ai_deleted_toast">Model file deleted</string>
+    <string name="local_ai_delete_failed">Could not delete the file</string>
+
+    <string name="local_ai_hint_tiny">smallest and fastest — short answers</string>
+    <string name="local_ai_hint_balanced">balanced quality and speed — best default</string>
+    <string name="local_ai_hint_coder">tuned for code completions and refactors</string>
+    <string name="local_ai_hint_multilingual">good multilingual answers and summaries</string>
+    <string name="local_ai_hint_reasoning">can think step by step before answering</string>
+    <string name="local_ai_hint_large">best quality here — needs 8 GB of RAM or more</string>
+
+    <!-- Engine messages, emitted into the log by LocalAiRuntime. -->
+    <string name="local_ai_already_running">Local AI is already running on port %1$d</string>
+    <string name="local_ai_engine_missing">llama-server is missing from this build (arm64-v8a only)</string>
+    <string name="local_ai_need_model">Download or pick a model first</string>
+    <string name="local_ai_engine_binary">engine: %1$s</string>
+    <string name="local_ai_engine_model">model: %1$s (%2$s)</string>
+    <string name="local_ai_engine_command">command: %1$s</string>
+    <string name="local_ai_engine_spawn_failed">Could not start llama-server: %1$s</string>
+    <string name="local_ai_engine_exited">llama-server exited with code %1$d</string>
+    <string name="local_ai_engine_listening">llama-server is listening on 127.0.0.1:%1$d</string>
+    <string name="local_ai_provider_written">provider “local” written to opencode.jsonc</string>
+    <string name="local_ai_started">Local AI started on port %1$d — pick the model in opencode</string>
+    <string name="local_ai_engine_timeout">llama-server did not become ready in time</string>
+    <string name="local_ai_engine_stopped_log">llama-server stopped</string>
+    <string name="local_ai_stopped">Local AI stopped</string>
+    <string name="local_ai_nothing_to_stop">Local AI is not running</string>
+    <string name="local_ai_models_dir_failed">Could not create %1$s</string>
+    <string name="local_ai_download_started">Downloading %1$s…</string>
+    <string name="local_ai_download_truncated">Download stopped early (%1$d of %2$d bytes)</string>
+    <string name="local_ai_download_done">saved %1$s (%2$s)</string>
+    <string name="local_ai_deleted">deleted %1$s</string>
 </resources>

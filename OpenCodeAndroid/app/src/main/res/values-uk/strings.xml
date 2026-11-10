@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Local AI screen, shown when opencode's `oc_locale` cookie says `uk`.
+  Only the local-AI strings are translated here; everything else falls back to
+  `values/strings.xml`, so the rest of the app keeps its own wording.
+-->
+<resources>
+    <string name="menu_local_ai">Локальний ШІ</string>
+    <string name="local_ai_title">Локальний ШІ</string>
+    <string name="local_ai_model_section">Модель</string>
+    <string name="local_ai_model_help">Запускає llama.cpp просто на пристрої. Поки рушій працює, модель додається в opencode як провайдер «Локальний ШІ» і з\'являється у звичайному списку моделей.</string>
+    <string name="local_ai_no_model">Модель не вибрано</string>
+    <string name="local_ai_model_selected">%1$s · %2$s</string>
+    <string name="local_ai_model_missing">%1$s · файл не знайдено, завантажте знову</string>
+    <string name="local_ai_model_custom">%1$s · власний файл</string>
+    <string name="local_ai_pick">Вибрати модель</string>
+    <string name="local_ai_download">Завантажити</string>
+    <string name="local_ai_use_file">Вказати файл…</string>
+    <string name="local_ai_delete">Видалити</string>
+    <string name="local_ai_pick_title">Модель</string>
+    <string name="local_ai_pick_item">%1$s — %2$s</string>
+    <string name="local_ai_engine_section">Рушій</string>
+    <string name="local_ai_engine_help">llama-server слухає лише 127.0.0.1. Запуск один раз перезапускає сервер opencode, щоб підхопити нового провайдера.</string>
+    <string name="local_ai_engine_stopped">Зупинено</string>
+    <string name="local_ai_engine_running">Працює на 127.0.0.1:%1$d</string>
+    <string name="local_ai_start">Запустити</string>
+    <string name="local_ai_stop">Зупинити</string>
+    <string name="local_ai_params">Параметри</string>
+    <string name="local_ai_params_summary">Контекст %1$d токенів · потоків: %2$d</string>
+    <string name="local_ai_params_title">Параметри рушія</string>
+    <string name="local_ai_params_context">Розмір контексту (токени)</string>
+    <string name="local_ai_params_threads">Потоки (0 = авто)</string>
+    <string name="local_ai_params_help">Більший контекст займає більше пам\'яті. Зміни застосуються під час наступного запуску рушія.</string>
+    <string name="local_ai_params_bad">Введіть числа в обидва поля</string>
+    <string name="local_ai_params_saved">Параметри збережено</string>
+    <string name="local_ai_log_title">Журнал рушія</string>
+    <string name="local_ai_busy">Зачекайте…</string>
+    <string name="local_ai_pick_first">Спочатку виберіть модель</string>
+    <string name="local_ai_already_downloaded">Ця модель уже завантажена</string>
+    <string name="local_ai_download_running">Завантаження %1$s… %2$s</string>
+    <string name="local_ai_download_ok">Завантажено: %1$s</string>
+    <string name="local_ai_file_title">Файл GGUF</string>
+    <string name="local_ai_file_hint">Шлях до файлу .gguf (~/models/… або абсолютний)</string>
+    <string name="local_ai_file_ok">Використати файл</string>
+    <string name="local_ai_file_missing">Файл не знайдено: %1$s</string>
+    <string name="local_ai_delete_title">Видалити файл моделі?</string>
+    <string name="local_ai_delete_text">%1$s буде видалено з пристрою.</string>
+    <string name="local_ai_delete_yes">Видалити</string>
+    <string name="local_ai_deleted_toast">Файл моделі видалено</string>
+    <string name="local_ai_delete_failed">Не вдалося видалити файл</string>
+
+    <string name="local_ai_hint_tiny">найменша й найшвидша — короткі відповіді</string>
+    <string name="local_ai_hint_balanced">баланс якості та швидкості — найкращий вибір за замовчуванням</string>
+    <string name="local_ai_hint_coder">налаштована на доповнення коду та рефакторинг</string>
+    <string name="local_ai_hint_multilingual">добрі багатомовні відповіді та перекази</string>
+    <string name="local_ai_hint_reasoning">уміє думати покроково перед відповіддю</string>
+    <string name="local_ai_hint_large">найкраща якість тут — потрібно 8 ГБ ОЗП або більше</string>
+
+    <string name="local_ai_already_running">Локальний ШІ вже працює на порту %1$d</string>
+    <string name="local_ai_engine_missing">У цій збірці немає llama-server (лише arm64-v8a)</string>
+    <string name="local_ai_need_model">Спочатку завантажте або виберіть модель</string>
+    <string name="local_ai_engine_binary">рушій: %1$s</string>
+    <string name="local_ai_engine_model">модель: %1$s (%2$s)</string>
+    <string name="local_ai_engine_command">команда: %1$s</string>
+    <string name="local_ai_engine_spawn_failed">Не вдалося запустити llama-server: %1$s</string>
+    <string name="local_ai_engine_exited">llama-server завершився з кодом %1$d</string>
+    <string name="local_ai_engine_listening">llama-server слухає 127.0.0.1:%1$d</string>
+    <string name="local_ai_provider_written">провайдер «local» записано в opencode.jsonc</string>
+    <string name="local_ai_started">Локальний ШІ запущено на порту %1$d — виберіть модель в opencode</string>
+    <string name="local_ai_engine_timeout">llama-server не встиг запуститися</string>
+    <string name="local_ai_engine_stopped_log">llama-server зупинено</string>
+    <string name="local_ai_stopped">Локальний ШІ зупинено</string>
+    <string name="local_ai_nothing_to_stop">Локальний ШІ не запущено</string>
+    <string name="local_ai_models_dir_failed">Не вдалося створити %1$s</string>
+    <string name="local_ai_download_started">Завантаження %1$s…</string>
+    <string name="local_ai_download_truncated">Завантаження обірвалося раніше (%1$d з %2$d байт)</string>
+    <string name="local_ai_download_done">збережено %1$s (%2$s)</string>
+    <string name="local_ai_deleted">видалено %1$s</string>
+</resources>

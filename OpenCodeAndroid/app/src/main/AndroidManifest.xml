@@ -64,6 +64,13 @@
             android:label="@string/integrations_title"
             android:windowSoftInputMode="adjustResize" />
 
+        <activity
+            android:name=".LocalAiActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize|uiMode"
+            android:exported="false"
+            android:label="@string/local_ai_title"
+            android:windowSoftInputMode="adjustResize" />
+
         <service
             android:name=".ServerService"
             android:exported="false"
