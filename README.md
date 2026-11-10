@@ -254,7 +254,8 @@ gradle :app:assembleDebug
 ```powershell
 git clone --depth 1 https://github.com/ggml-org/llama.cpp
 cmake -B build-llama -S llama.cpp -G Ninja -DCMAKE_TOOLCHAIN_FILE=<ndk>/build/cmake/android.toolchain.cmake `
-  -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-26 -DLLAMA_CURL=OFF -DGGML_OPENMP=OFF `
+  -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-26 -DCMAKE_BUILD_TYPE=Release `
+  -DLLAMA_CURL=OFF -DGGML_OPENMP=OFF `
   -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_SERVER=ON
 cmake --build build-llama --target llama-server -j
 llvm-strip --strip-all build-llama/bin/llama-server
