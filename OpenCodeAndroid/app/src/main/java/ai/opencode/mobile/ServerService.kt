@@ -25,7 +25,10 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.InetAddress
+import java.net.InetSocketAddress
+import java.net.Proxy
 import java.net.ServerSocket
+import java.net.Socket
 import java.net.URL
 
 /**
@@ -147,6 +150,10 @@ class ServerService : Service() {
         ServerState.set(ServerState.Phase.STARTING, "Preparing environment…")
         AppEnv.ensureDirs(this)
         AppEnv.ensureConfig(this)
+        // The local provider only makes sense while its engine is alive. Dropping it here,
+        // before the server reads the config, keeps a chat that still had that model selected
+        // from failing with ECONNREFUSED against a port nobody listens on any more.
+        runCatching { LocalAiRuntime.reconcile(this) }
 
         val home = AppEnv.home(this)
         ServerState.appendLog(
@@ -228,7 +235,7 @@ class ServerService : Service() {
 
             reader = scope.launch { pumpOutput(p) }
 
-            val ready = waitReady(port, password, 90_000)
+            val ready = waitReady(port, password, 180_000)
             if (ready) {
                 ServerState.running(port, password)
                 goForeground(getString(R.string.notif_text_running, port))
@@ -317,24 +324,110 @@ class ServerService : Service() {
         }
     }
 
+    /**
+     * Waits until the server answers, without ever blocking the UI for minutes.
+     *
+     * A cold start normally takes about a second, but on a busy phone the first HTTP
+     * request can stall while the runtime warms up. Earlier this method only accepted a
+     * 2xx answer from `/api/info` and treated `401`/`503` as "not ready", which made the
+     * splash sit there for tens of seconds even though the port was already open. Now:
+     *
+     *  - the port opening is logged as the first real signal;
+     *  - `401`/`403` count as up (the WebView mints its own session cookie anyway);
+     *  - `503` counts as up once it keeps answering for a few seconds;
+     *  - if the deadline passes but the process is alive and the port is open, we hand
+     *    over to the WebView instead of killing a working server.
+     */
     private suspend fun waitReady(port: Int, password: String, timeoutMs: Long): Boolean {
-        val deadline = System.currentTimeMillis() + timeoutMs
+        val startedAt = System.currentTimeMillis()
+        val deadline = startedAt + timeoutMs
+        var lastNote = ""
+        var listeningSince = 0L
+        var sawHttp = false
+        var ticks = 0
+
+        fun note(text: String) {
+            if (text != lastNote) {
+                lastNote = text
+                ServerState.appendLog(text)
+            }
+        }
+
         while (System.currentTimeMillis() < deadline) {
             if (process?.isAlive != true) return false
+            ticks++
+
+            if (!isListening(port)) {
+                if (ticks % 20 == 0) {
+                    note("waiting for port $port (${(System.currentTimeMillis() - startedAt) / 1000}s)")
+                }
+                delay(200)
+                continue
+            }
+
+            if (listeningSince == 0L) {
+                listeningSince = System.currentTimeMillis()
+                ServerState.appendLog(
+                    "port $port is listening after ${(listeningSince - startedAt)} ms"
+                )
+            }
+
             try {
-                val conn = URL("http://127.0.0.1:$port/api/info").openConnection() as HttpURLConnection
-                conn.connectTimeout = 2000
-                conn.readTimeout = 2000
+                // NO_PROXY: a system HTTP proxy would otherwise swallow loopback requests.
+                val conn = URL("http://127.0.0.1:$port/api/info").openConnection(Proxy.NO_PROXY) as HttpURLConnection
+                conn.connectTimeout = 3000
+                conn.readTimeout = 3000
                 conn.setRequestProperty("Authorization", OpenCodeAuth.basicHeader(password))
                 val code = conn.responseCode
                 conn.disconnect()
-                if (code in 200..299) return true
-            } catch (_: Throwable) {
-                // not up yet
+                sawHttp = true
+                when {
+                    code in 200..299 -> {
+                        ServerState.appendLog("server answered /api/info with $code")
+                        return true
+                    }
+                    // The server is up and talking, it just rejects this particular
+                    // credential form. The WebView uses its own cookie, so go ahead.
+                    code == 401 || code == 403 -> {
+                        ServerState.appendLog("server answered /api/info with $code — treating as ready")
+                        return true
+                    }
+                    // Warming up: the HTTP stack is alive but the app is not serving yet.
+                    code == 503 -> note("server is warming up (/api/info -> 503)")
+                    else -> note("waiting for server (/api/info -> $code)")
+                }
+            } catch (t: Throwable) {
+                note("waiting for server (${t.javaClass.simpleName}: ${t.message})")
             }
-            delay(400)
+
+            // The socket has been open and answering for a while: stop holding the UI back.
+            if (sawHttp && System.currentTimeMillis() - listeningSince > 20_000) {
+                ServerState.appendLog("server is answering but not 2xx — continuing anyway")
+                return true
+            }
+            delay(250)
+        }
+
+        if (process?.isAlive == true && isListening(port)) {
+            ServerState.appendLog(
+                "timeout after ${timeoutMs / 1000}s, but port $port is listening — continuing"
+            )
+            return true
         }
         return false
+    }
+
+    /** True when something accepts TCP connections on the loopback port. */
+    private fun isListening(port: Int): Boolean {
+        val socket = Socket()
+        return try {
+            socket.connect(InetSocketAddress(InetAddress.getByName("127.0.0.1"), port), 500)
+            true
+        } catch (_: Throwable) {
+            false
+        } finally {
+            runCatching { socket.close() }
+        }
     }
 
     private fun freePort(): Int =

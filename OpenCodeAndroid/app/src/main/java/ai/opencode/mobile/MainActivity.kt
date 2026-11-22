@@ -72,25 +72,161 @@ class MainActivity : AppCompatActivity() {
     private var fileChooserCallback: ValueCallback<Array<Uri>>? = null
     private var popupHolder: WebView? = null
 
+    /** Target of a camera capture: the app writes it, the camera app only fills it in. */
+    private var pendingCameraUri: Uri? = null
+    private var pendingCameraFile: File? = null
+
     /** Result of the `<input type="file">` picker opened from the web UI. */
     private val filePicker =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             val callback = fileChooserCallback
             fileChooserCallback = null
-            if (callback == null) return@registerForActivityResult
-            val data = result.data
-            if (result.resultCode != RESULT_OK || data == null) {
-                callback.onReceiveValue(null)
-                return@registerForActivityResult
+
+            val uris = mutableListOf<Uri>()
+            Log.d(TAG, "file picker result: code=${result.resultCode} data=${result.data?.data} clip=${result.data?.clipData?.itemCount ?: 0}")
+            if (result.resultCode == RESULT_OK) {
+                val data = result.data
+                val clip = data?.clipData
+                if (clip != null) {
+                    for (i in 0 until clip.itemCount) clip.getItemAt(i).uri?.let { uris.add(it) }
+                } else {
+                    data?.data?.let { uris.add(it) }
+                }
+                // A capture writes straight into the URI we handed to the camera app. Some
+                // camera apps also return a (thumbnail) data URI, which must not win.
+                pendingCameraUri?.let {
+                    uris.clear()
+                    uris.add(it)
+                }
             }
-            val clip = data.clipData
-            val uris = if (clip != null) {
-                (0 until clip.itemCount).mapNotNull { clip.getItemAt(it).uri }
-            } else {
-                listOfNotNull(data.data)
+
+            // A cancelled (or empty) capture must not leave a zero-byte file behind.
+            val captured = pendingCameraFile
+            pendingCameraUri = null
+            pendingCameraFile = null
+            if (captured != null && (result.resultCode != RESULT_OK || captured.length() == 0L)) {
+                runCatching { captured.delete() }
             }
-            callback.onReceiveValue(uris.toTypedArray().takeIf { it.isNotEmpty() })
+
+            callback?.onReceiveValue(uris.toTypedArray().takeIf { it.isNotEmpty() })
         }
+
+    /**
+     * Attachment picker of the web UI.
+     *
+     * The stock `createIntent()` only opens the system picker, which on most phones cannot
+     * produce a fresh photo, video or voice note. This chooser offers every source the page
+     * accepts: camera photo, camera video, gallery, audio recording and any document.
+     */
+    private fun openAttachmentChooser(params: WebChromeClient.FileChooserParams): Boolean {
+        val accept = params.acceptTypes
+            .flatMap { it.split(',') }
+            .map { it.trim().lowercase() }
+            .filter { it.isNotEmpty() }
+        val any = accept.isEmpty() || accept.any { it == "*/*" || it == "*" }
+        fun allows(kind: String) = any || accept.any { it == kind || it.startsWith("$kind/") }
+        val multiple = params.mode == WebChromeClient.FileChooserParams.MODE_OPEN_MULTIPLE
+
+        val images = allows("image")
+        val videos = allows("video")
+        val sounds = allows("audio")
+
+        // opencode's composer hands us an untyped input (`accept=""`), so the per-source
+        // entries still need a sensible filter — otherwise "Gallery" would list APKs.
+        val mediaTypes = accept.filter { it.startsWith("image/") || it.startsWith("video/") }
+            .ifEmpty { listOf("image/*", "video/*") }
+        val audioTypes = accept.filter { it.startsWith("audio/") }
+            .ifEmpty { listOf("audio/*") }
+
+        val actions = mutableListOf<Pair<Int, () -> Unit>>()
+        if (images) actions += R.string.attach_photo to ({ capture(MediaStore.ACTION_IMAGE_CAPTURE, "jpg") })
+        if (videos) actions += R.string.attach_video to ({ capture(MediaStore.ACTION_VIDEO_CAPTURE, "mp4") })
+        if (images || videos) {
+            actions += R.string.attach_gallery to ({ pickMedia(mediaTypes, multiple, false) })
+        }
+        if (sounds) {
+            actions += R.string.attach_audio to ({ pickMedia(audioTypes, multiple, false) })
+            actions += R.string.attach_record to ({ recordSound() })
+        }
+        actions += R.string.attach_file to ({ pickMedia(accept, multiple, true) })
+
+        if (actions.isEmpty()) return false
+        AlertDialog.Builder(this)
+            .setTitle(R.string.attach_title)
+            .setItems(actions.map { getString(it.first) }.toTypedArray()) { _, which -> actions[which].second() }
+            .setOnCancelListener { cancelFileChooser() }
+            .show()
+        return true
+    }
+
+    private fun cancelFileChooser() {
+        pendingCameraUri = null
+        pendingCameraFile = null
+        val callback = fileChooserCallback
+        fileChooserCallback = null
+        callback?.onReceiveValue(null)
+    }
+
+    private fun launchPicker(intent: Intent) {
+        try {
+            filePicker.launch(intent)
+        } catch (t: Throwable) {
+            Log.w(TAG, "cannot open attachment picker", t)
+            Toast.makeText(this, R.string.attach_unavailable, Toast.LENGTH_SHORT).show()
+            cancelFileChooser()
+        }
+    }
+
+    /** Camera capture: the app creates the target file, the camera app only fills it in. */
+    private fun capture(action: String, ext: String) {
+        pendingCameraUri = null
+        pendingCameraFile = null
+        val dir = File(cacheDir, "captures").apply { mkdirs() }
+        val file = File(dir, "capture-${System.currentTimeMillis()}.$ext")
+        val uri = FileProvider.getUriForFile(this, "$packageName.files", file)
+        val intent = Intent(action).apply {
+            putExtra(MediaStore.EXTRA_OUTPUT, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        }
+        if (intent.resolveActivity(packageManager) == null) {
+            Toast.makeText(this, R.string.attach_unavailable, Toast.LENGTH_SHORT).show()
+            cancelFileChooser()
+            return
+        }
+        pendingCameraUri = uri
+        pendingCameraFile = file
+        launchPicker(intent)
+    }
+
+    private fun pickMedia(accept: List<String>, multiple: Boolean, documents: Boolean) {
+        pendingCameraUri = null
+        pendingCameraFile = null
+        val types = accept.filter { it.isNotEmpty() && it != "*/*" && it != "*" }.distinct()
+        val intent = Intent(if (documents) Intent.ACTION_OPEN_DOCUMENT else Intent.ACTION_GET_CONTENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = if (types.size == 1) types.first() else "*/*"
+            if (types.size > 1) putExtra(Intent.EXTRA_MIME_TYPES, types.toTypedArray())
+            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, multiple)
+        }
+        if (intent.resolveActivity(packageManager) == null) {
+            Toast.makeText(this, R.string.attach_unavailable, Toast.LENGTH_SHORT).show()
+            cancelFileChooser()
+            return
+        }
+        launchPicker(intent)
+    }
+
+    private fun recordSound() {
+        pendingCameraUri = null
+        pendingCameraFile = null
+        val intent = Intent(MediaStore.Audio.Media.RECORD_SOUND_ACTION)
+        if (intent.resolveActivity(packageManager) == null) {
+            Toast.makeText(this, R.string.attach_unavailable, Toast.LENGTH_SHORT).show()
+            cancelFileChooser()
+            return
+        }
+        launchPicker(intent)
+    }
 
     private val prefs by lazy { getSharedPreferences("ui", Context.MODE_PRIVATE) }
 
@@ -227,8 +363,13 @@ class MainActivity : AppCompatActivity() {
                 fileChooserCallback?.onReceiveValue(null)
                 fileChooserCallback = filePathCallback
                 return try {
-                    filePicker.launch(fileChooserParams.createIntent())
-                    true
+                    if (!openAttachmentChooser(fileChooserParams)) {
+                        fileChooserCallback = null
+                        filePathCallback.onReceiveValue(null)
+                        false
+                    } else {
+                        true
+                    }
                 } catch (t: Throwable) {
                     Log.w(TAG, "cannot open file chooser", t)
                     fileChooserCallback = null
@@ -780,7 +921,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setMicActive(active: Boolean) {
         findViewById<ImageButton>(R.id.btnMic).imageTintList =
-            ColorStateList.valueOf(if (active) 0xFF66B2FF.toInt() else 0xFFD0D0D0.toInt())
+            ColorStateList.valueOf(getColor(if (active) R.color.oc_accent else R.color.oc_icon))
     }
 
     private val voiceListener = object : RecognitionListener {

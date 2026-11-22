@@ -382,7 +382,7 @@ class IntegrationsActivity : AppCompatActivity() {
                 } else {
                     val labels = files.map { file ->
                         val size = humanSize(file.size)
-                        if (size.isEmpty()) file.name else "${file.name} · $size"
+                        if (size.isEmpty()) file.name else "${file.name} В· $size"
                     }.toTypedArray()
                     AlertDialog.Builder(this)
                         .setTitle(R.string.integrations_drive_picker)
@@ -405,7 +405,7 @@ class IntegrationsActivity : AppCompatActivity() {
             getString(
                 R.string.integrations_downloaded,
                 name,
-                humanSize(bytes.size.toLong()) + " → " + relativeToHome(dest),
+                humanSize(bytes.size.toLong()) + " в†’ " + relativeToHome(dest),
             )
         }
     }
@@ -457,7 +457,7 @@ class IntegrationsActivity : AppCompatActivity() {
         val inputs = hints.mapIndexed { index, hint ->
             EditText(this).apply {
                 setHint(hint)
-                setTextColor(0xFFE8E8E8.toInt())
+                setTextColor(getColor(R.color.oc_text))
                 textSize = 13f
                 inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
                 imeOptions = if (index == hints.lastIndex) {

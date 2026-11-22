@@ -3,13 +3,13 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0F0F0F"
+    android:background="@color/oc_bg"
     android:orientation="vertical">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#181818"
+        android:background="@color/oc_bar"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingStart="12dp"
@@ -25,7 +25,7 @@
             android:ellipsize="end"
             android:maxLines="1"
             android:text="@string/status_idle"
-            android:textColor="#B4B4B4"
+            android:textColor="@color/oc_text_dim"
             android:textSize="12sp" />
 
         <ImageButton
@@ -35,7 +35,7 @@
             android:background="?android:attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/action_voice"
             android:src="@android:drawable/ic_btn_speak_now"
-            app:tint="#D0D0D0" />
+            app:tint="@color/oc_icon" />
 
         <ImageButton
             android:id="@+id/btnReload"
@@ -44,7 +44,7 @@
             android:background="?android:attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/action_reload"
             android:src="@android:drawable/ic_menu_rotate"
-            app:tint="#D0D0D0" />
+            app:tint="@color/oc_icon" />
 
         <ImageButton
             android:id="@+id/btnMenu"
@@ -53,7 +53,7 @@
             android:background="?android:attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/action_menu"
             android:src="@android:drawable/ic_menu_more"
-            app:tint="#D0D0D0" />
+            app:tint="@color/oc_icon" />
     </LinearLayout>
 
     <FrameLayout
@@ -65,7 +65,7 @@
             android:id="@+id/webView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="#0F0F0F" />
+            android:background="@color/oc_bg" />
 
         <ProgressBar
             android:id="@+id/progress"
@@ -80,7 +80,7 @@
             android:id="@+id/errorBox"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="#0F0F0F"
+            android:background="@color/oc_bg"
             android:orientation="vertical"
             android:padding="16dp"
             android:visibility="gone">

@@ -22,6 +22,7 @@
     <string name="local_ai_engine_section">Рушій</string>
     <string name="local_ai_engine_help">llama-server слухає лише 127.0.0.1. Запуск один раз перезапускає сервер opencode, щоб підхопити нового провайдера.</string>
     <string name="local_ai_engine_stopped">Зупинено</string>
+    <string name="local_ai_engine_starting">Завантажую модель…</string>
     <string name="local_ai_engine_running">Працює на 127.0.0.1:%1$d</string>
     <string name="local_ai_start">Запустити</string>
     <string name="local_ai_stop">Зупинити</string>
@@ -33,6 +34,9 @@
     <string name="local_ai_params_help">Більший контекст займає більше пам\'яті. Зміни застосуються під час наступного запуску рушія.</string>
     <string name="local_ai_params_bad">Введіть числа в обидва поля</string>
     <string name="local_ai_params_saved">Параметри збережено</string>
+    <string name="local_ai_tools">Полегшений режим (без інструментів)</string>
+    <string name="local_ai_tools_help">Увімкнено: локальна модель отримує короткий запит без описів інструментів, тому відповідь починається значно швидше й займає менше пам\'яті. Вимкнено: агент може читати файли й запускати команди, але запит зростає на тисячі токенів - на телефоні це може додати хвилини до першого слова.</string>
+    <string name="local_ai_tools_saved">Налаштування полегшеного режиму збережено</string>
     <string name="local_ai_log_title">Журнал рушія</string>
     <string name="local_ai_busy">Зачекайте…</string>
     <string name="local_ai_pick_first">Спочатку виберіть модель</string>
@@ -60,20 +64,25 @@
     <string name="local_ai_engine_missing">У цій збірці немає llama-server (лише arm64-v8a)</string>
     <string name="local_ai_need_model">Спочатку завантажте або виберіть модель</string>
     <string name="local_ai_engine_binary">рушій: %1$s</string>
+    <string name="local_ai_engine_fast">процесор: збірка з dot-product ARMv8.2 (швидка)</string>
+    <string name="local_ai_engine_portable">процесор: без dot-product, використовується переносна збірка</string>
     <string name="local_ai_engine_model">модель: %1$s (%2$s)</string>
     <string name="local_ai_engine_command">команда: %1$s</string>
     <string name="local_ai_engine_spawn_failed">Не вдалося запустити llama-server: %1$s</string>
     <string name="local_ai_engine_exited">llama-server завершився з кодом %1$d</string>
     <string name="local_ai_engine_listening">llama-server слухає 127.0.0.1:%1$d</string>
     <string name="local_ai_provider_written">провайдер «local» записано в opencode.jsonc</string>
+    <string name="local_ai_provider_dropped">двигун не запущено — провайдер «local» прибрано з opencode.jsonc</string>
     <string name="local_ai_started">Локальний ШІ запущено на порту %1$d — виберіть модель в opencode</string>
     <string name="local_ai_engine_timeout">llama-server не встиг запуститися</string>
     <string name="local_ai_engine_stopped_log">llama-server зупинено</string>
+    <string name="local_ai_engine_gone">llama-server завершився — двигун зупинено</string>
     <string name="local_ai_stopped">Локальний ШІ зупинено</string>
     <string name="local_ai_nothing_to_stop">Локальний ШІ не запущено</string>
     <string name="local_ai_models_dir_failed">Не вдалося створити %1$s</string>
     <string name="local_ai_download_started">Завантаження %1$s…</string>
     <string name="local_ai_download_truncated">Завантаження обірвалося раніше (%1$d з %2$d байт)</string>
+    <string name="local_ai_download_retry">Зв\'язок обірвався (спроба %1$d) — продовжую з %2$d із %3$d байт</string>
     <string name="local_ai_download_done">збережено %1$s (%2$s)</string>
     <string name="local_ai_deleted">видалено %1$s</string>
 </resources>

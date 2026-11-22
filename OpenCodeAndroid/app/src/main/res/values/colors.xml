@@ -1,4 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#14161C</color>
+
+    <!--
+      OpenCode palette. The native chrome uses exactly the same flat background as the
+      web UI, so the toolbar/status strip blends into the page instead of showing up as
+      a lighter band above it.
+    -->
+    <color name="oc_bg">#0F0F0F</color>
+    <color name="oc_bar">#0F0F0F</color>
+    <color name="oc_field">#141414</color>
+    <color name="oc_divider">#1F1F1F</color>
+    <color name="oc_text">#EDEDED</color>
+    <color name="oc_text_dim">#8A8A8A</color>
+    <color name="oc_icon">#9C9C9C</color>
+    <color name="oc_accent">#66B2FF</color>
 </resources>

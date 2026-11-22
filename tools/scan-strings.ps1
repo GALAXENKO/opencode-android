@@ -1,24 +1,23 @@
-param([string]$Path = "F:\проджект\buildenv\dl\opencode\package\bin\opencode")
-$bytes = [IO.File]::ReadAllBytes($Path)
-$s = [Text.Encoding]::Latin1.GetString($bytes)
-$needles = @(
-  '/etc/resolv.conf',
-  '/etc/ssl/certs',
-  'ca-certificates.crt',
-  '/etc/hosts',
-  '/etc/nsswitch.conf',
-  '/proc/self/exe',
-  '/etc/ssl/cert.pem',
-  'SSL_CERT_FILE',
-  'SSL_CERT_DIR',
-  'NODE_EXTRA_CA_CERTS',
-  'nameserver',
-  '/etc/passwd',
-  '/etc/group'
+param(
+    [string]$So = 'F:\oc\OpenCodeAndroid\app\src\main\jniLibs\arm64-v8a\libopencode.so',
+    [string]$Pattern = 'attach',
+    [int]$Max = 40
 )
-foreach ($n in $needles) {
-  $idx = New-Object System.Collections.Generic.List[int]
-  $i = $s.IndexOf($n)
-  while ($i -ge 0 -and $idx.Count -lt 20) { $idx.Add($i); $i = $s.IndexOf($n, $i + 1) }
-  Write-Output ("{0,-24} => {1,3}  {2}" -f $n, $idx.Count, ($idx -join ','))
+$bytes = [System.IO.File]::ReadAllBytes($So)
+$text = [System.Text.Encoding]::UTF8.GetString($bytes)
+$rx = [regex]::new($Pattern, 'IgnoreCase')
+$n = 0
+foreach ($m in $rx.Matches($text)) {
+    if ($n -ge $Max) { break }
+    $start = [Math]::Max(0, $m.Index - 120)
+    $len = [Math]::Min(260, $text.Length - $start)
+    $chunk = $text.Substring($start, $len)
+    $sb = New-Object System.Text.StringBuilder
+    foreach ($ch in $chunk.ToCharArray()) {
+        $code = [int]$ch
+        if (($code -ge 32 -and $code -lt 127) -or $code -gt 0x400) { [void]$sb.Append($ch) } else { [void]$sb.Append(' ') }
+    }
+    "$($m.Index): $($sb.ToString())"
+    $n++
 }
+"total matches: $($rx.Matches($text).Count)"

@@ -15,6 +15,7 @@ captures/
 *.aab
 *.keystore
 *.jks
+keystore.properties
 lint-results*
 __pycache__/
 *.pyc

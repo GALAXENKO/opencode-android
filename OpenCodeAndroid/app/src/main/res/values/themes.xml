@@ -1,7 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.OpenCode" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="android:statusBarColor">#101010</item>
-        <item name="android:navigationBarColor">#101010</item>
+    <!--
+      One dark theme everywhere: the app hosts the opencode web UI, which is dark, so a
+      DayNight parent would flash a light window and render light dialogs over the page.
+      The window/status/navigation bars use the page background, which makes the native
+      toolbar visually part of the UI instead of a separate strip.
+    -->
+    <style name="Theme.OpenCode" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="android:windowBackground">@color/oc_bg</item>
+        <item name="android:colorBackground">@color/oc_bg</item>
+        <item name="android:statusBarColor">@color/oc_bg</item>
+        <item name="android:navigationBarColor">@color/oc_bg</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="colorPrimary">@color/oc_accent</item>
+        <item name="colorSecondary">@color/oc_accent</item>
+        <item name="colorSurface">@color/oc_bg</item>
+        <item name="colorOnSurface">@color/oc_text</item>
+        <item name="colorOnSurfaceVariant">@color/oc_text_dim</item>
     </style>
 </resources>

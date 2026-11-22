@@ -22,6 +22,7 @@
     <string name="local_ai_engine_section">Engine</string>
     <string name="local_ai_engine_help">llama-server lauscht nur auf 127.0.0.1. Beim Start wird der opencode-Server einmal neu gestartet, damit der neue Anbieter geladen wird.</string>
     <string name="local_ai_engine_stopped">Gestoppt</string>
+    <string name="local_ai_engine_starting">Modell wird geladen…</string>
     <string name="local_ai_engine_running">Läuft auf 127.0.0.1:%1$d</string>
     <string name="local_ai_start">Starten</string>
     <string name="local_ai_stop">Stoppen</string>
@@ -33,6 +34,9 @@
     <string name="local_ai_params_help">Ein größerer Kontext braucht mehr Speicher. Änderungen gelten beim nächsten Start der Engine.</string>
     <string name="local_ai_params_bad">Bitte in beiden Feldern Zahlen eingeben</string>
     <string name="local_ai_params_saved">Parameter gespeichert</string>
+    <string name="local_ai_tools">Leichtmodus (ohne Tools)</string>
+    <string name="local_ai_tools_help">An: Das lokale Modell bekommt einen kurzen Prompt ohne Tool-Beschreibungen, antwortet dadurch deutlich schneller und braucht weniger Speicher. Aus: Der Agent darf Dateien lesen und Befehle ausführen, der Prompt wächst aber um Tausende Token - auf dem Handy können das Minuten bis zum ersten Wort sein.</string>
+    <string name="local_ai_tools_saved">Leichtmodus gespeichert</string>
     <string name="local_ai_log_title">Engine-Protokoll</string>
     <string name="local_ai_busy">Bitte warten…</string>
     <string name="local_ai_pick_first">Bitte zuerst ein Modell wählen</string>
@@ -60,20 +64,25 @@
     <string name="local_ai_engine_missing">llama-server fehlt in diesem Build (nur arm64-v8a)</string>
     <string name="local_ai_need_model">Bitte zuerst ein Modell herunterladen oder wählen</string>
     <string name="local_ai_engine_binary">Engine: %1$s</string>
+    <string name="local_ai_engine_fast">CPU: ARMv8.2 dot-product build (fast)</string>
+    <string name="local_ai_engine_portable">CPU: no dot-product support, using the portable build</string>
     <string name="local_ai_engine_model">Modell: %1$s (%2$s)</string>
     <string name="local_ai_engine_command">Befehl: %1$s</string>
     <string name="local_ai_engine_spawn_failed">llama-server konnte nicht gestartet werden: %1$s</string>
     <string name="local_ai_engine_exited">llama-server wurde mit Code %1$d beendet</string>
     <string name="local_ai_engine_listening">llama-server lauscht auf 127.0.0.1:%1$d</string>
     <string name="local_ai_provider_written">Anbieter „local“ in opencode.jsonc eingetragen</string>
+    <string name="local_ai_provider_dropped">Engine läuft nicht — Anbieter „local“ aus opencode.jsonc entfernt</string>
     <string name="local_ai_started">Lokale KI läuft auf Port %1$d — Modell jetzt in opencode wählen</string>
     <string name="local_ai_engine_timeout">llama-server ist nicht rechtzeitig gestartet</string>
     <string name="local_ai_engine_stopped_log">llama-server gestoppt</string>
+    <string name="local_ai_engine_gone">llama-server beendet — die Engine ist gestoppt</string>
     <string name="local_ai_stopped">Lokale KI gestoppt</string>
     <string name="local_ai_nothing_to_stop">Lokale KI läuft nicht</string>
     <string name="local_ai_models_dir_failed">%1$s konnte nicht erstellt werden</string>
     <string name="local_ai_download_started">%1$s wird heruntergeladen…</string>
     <string name="local_ai_download_truncated">Download zu früh abgebrochen (%1$d von %2$d Bytes)</string>
+    <string name="local_ai_download_retry">Verbindung abgebrochen (Versuch %1$d) — weiter bei %2$d von %3$d Bytes</string>
     <string name="local_ai_download_done">%1$s gespeichert (%2$s)</string>
     <string name="local_ai_deleted">%1$s gelöscht</string>
 </resources>

@@ -29,6 +29,15 @@
     <string name="voice_error">Voice input error: %1$s</string>
     <string name="voice_no_field">No text field is focused in the web UI</string>
 
+    <string name="attach_title">Attach</string>
+    <string name="attach_photo">Take a photo</string>
+    <string name="attach_video">Record a video</string>
+    <string name="attach_gallery">Gallery (photos &amp; videos)</string>
+    <string name="attach_audio">Audio file</string>
+    <string name="attach_record">Record audio</string>
+    <string name="attach_file">Choose a file</string>
+    <string name="attach_unavailable">No app on this device can do that</string>
+
     <string name="menu_reload">Reload page</string>
     <string name="menu_desktop">Desktop user agent</string>
     <string name="menu_config">Provider / config editor</string>
@@ -68,12 +77,16 @@
     <string name="provider_api_key">API key</string>
     <string name="provider_model_id">Model ID (e.g. gpt-4o)</string>
     <string name="provider_model_name">Model display name (optional)</string>
+    <string name="provider_model_ids">Model IDs — one per line or comma separated.\nOptional display name: id = Name</string>
+    <string name="provider_cap_input_media">The models understand images, audio and video</string>
+    <string name="provider_cap_output_media">The models generate images, audio or video</string>
+    <string name="provider_added">%1$d model(s) added</string>
     <string name="provider_add">Add</string>
     <string name="provider_error_id">Provider ID is required</string>
     <string name="provider_error_model">Model ID is required</string>
     <string name="provider_error_url">Base URL is required (e.g. https://api.example.com/v1)</string>
     <string name="provider_set_default">Use this model as the default</string>
-    <string name="provider_help">Adds providers.&lt;id&gt; with the openai-compatible package and one model. Comments in the file are dropped when this dialog rewrites it — add more models in the raw editor.</string>
+    <string name="provider_help">Adds providers.&lt;id&gt; with the openai-compatible package and any number of models at once — paste a whole catalogue into the “Model IDs” box. Existing entries are merged, other models of the provider are kept. Comments in the file are dropped when this dialog rewrites it — use the raw editor if you need them.</string>
     <string name="provider_exists">Provider "%1$s" already exists — it will be merged</string>
 
     <string name="terminal_title">Terminal</string>
@@ -179,6 +192,7 @@
     <string name="local_ai_engine_section">Engine</string>
     <string name="local_ai_engine_help">llama-server listens on 127.0.0.1 only. Starting it restarts the opencode server once so the new provider is loaded.</string>
     <string name="local_ai_engine_stopped">Stopped</string>
+    <string name="local_ai_engine_starting">Loading the model…</string>
     <string name="local_ai_engine_running">Running on 127.0.0.1:%1$d</string>
     <string name="local_ai_start">Start</string>
     <string name="local_ai_stop">Stop</string>
@@ -190,6 +204,9 @@
     <string name="local_ai_params_help">A larger context uses more memory. Changes apply the next time the engine starts.</string>
     <string name="local_ai_params_bad">Enter numbers for both fields</string>
     <string name="local_ai_params_saved">Parameters saved</string>
+    <string name="local_ai_tools">Light mode (no tools)</string>
+    <string name="local_ai_tools_help">On: the local model gets a short prompt without tool schemas, so the answer starts several times sooner and uses far less memory. Off: the agent may read files and run commands, but the prompt grows by thousands of tokens - on a phone that can take minutes before the first word.</string>
+    <string name="local_ai_tools_saved">Light mode setting saved</string>
     <string name="local_ai_log_title">Engine log</string>
     <string name="local_ai_busy">Please wait…</string>
     <string name="local_ai_pick_first">Choose a model first</string>
@@ -206,6 +223,19 @@
     <string name="local_ai_deleted_toast">Model file deleted</string>
     <string name="local_ai_delete_failed">Could not delete the file</string>
 
+    <string name="local_ai_hf_search">Search Hugging Face</string>
+    <string name="local_ai_hf_title">Hugging Face models</string>
+    <string name="local_ai_hf_query">Search GGUF models (e.g. qwen3 4b)</string>
+    <string name="local_ai_hf_help">Searches huggingface.co for GGUF repositories. Pick a repo, then the quantisation to download into ~/models. Any GGUF works, not just the built-in list.</string>
+    <string name="local_ai_hf_go">Search</string>
+    <string name="local_ai_hf_searching">Searching Hugging Face for “%1$s”…</string>
+    <string name="local_ai_hf_empty">Nothing found — try a shorter query</string>
+    <string name="local_ai_hf_results">Repositories</string>
+    <string name="local_ai_hf_files">Files</string>
+    <string name="local_ai_hf_no_gguf">This repository has no single-file GGUF models</string>
+    <string name="local_ai_hf_downloads">%1$s downloads</string>
+    <string name="local_ai_hf_file_pick">Download %1$s (%2$s)</string>
+
     <string name="local_ai_hint_tiny">smallest and fastest — short answers</string>
     <string name="local_ai_hint_balanced">balanced quality and speed — best default</string>
     <string name="local_ai_hint_coder">tuned for code completions and refactors</string>
@@ -218,20 +248,25 @@
     <string name="local_ai_engine_missing">llama-server is missing from this build (arm64-v8a only)</string>
     <string name="local_ai_need_model">Download or pick a model first</string>
     <string name="local_ai_engine_binary">engine: %1$s</string>
+    <string name="local_ai_engine_fast">CPU: ARMv8.2 dot-product build (fast)</string>
+    <string name="local_ai_engine_portable">CPU: no dot-product support, using the portable build</string>
     <string name="local_ai_engine_model">model: %1$s (%2$s)</string>
     <string name="local_ai_engine_command">command: %1$s</string>
     <string name="local_ai_engine_spawn_failed">Could not start llama-server: %1$s</string>
     <string name="local_ai_engine_exited">llama-server exited with code %1$d</string>
     <string name="local_ai_engine_listening">llama-server is listening on 127.0.0.1:%1$d</string>
     <string name="local_ai_provider_written">provider “local” written to opencode.jsonc</string>
+    <string name="local_ai_provider_dropped">engine is not running — provider “local” removed from opencode.jsonc</string>
     <string name="local_ai_started">Local AI started on port %1$d — pick the model in opencode</string>
     <string name="local_ai_engine_timeout">llama-server did not become ready in time</string>
     <string name="local_ai_engine_stopped_log">llama-server stopped</string>
+    <string name="local_ai_engine_gone">llama-server exited — the engine is stopped</string>
     <string name="local_ai_stopped">Local AI stopped</string>
     <string name="local_ai_nothing_to_stop">Local AI is not running</string>
     <string name="local_ai_models_dir_failed">Could not create %1$s</string>
     <string name="local_ai_download_started">Downloading %1$s…</string>
     <string name="local_ai_download_truncated">Download stopped early (%1$d of %2$d bytes)</string>
+    <string name="local_ai_download_retry">Connection dropped (attempt %1$d) — resuming at %2$d of %3$d bytes</string>
     <string name="local_ai_download_done">saved %1$s (%2$s)</string>
     <string name="local_ai_deleted">deleted %1$s</string>
 </resources>

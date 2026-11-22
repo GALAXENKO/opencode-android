@@ -20,8 +20,36 @@ object LocalAiStore {
     private const val KEY_CONTEXT = "context"
     private const val KEY_THREADS = "threads"
 
-    /** Context window used when the user never changed it. Fits 4 GB devices comfortably. */
-    const val DEFAULT_CONTEXT = 4096
+    /**
+     * Whether the provider advertises tool calling.
+     *
+     * Tool schemas are by far the largest part of opencode's system prompt: with them the
+     * first request is ~6k tokens, without them ~2.5k. On a phone every one of those tokens
+     * has to be pre-filled by the CPU before the first word appears, so the default is off —
+     * a small local model cannot drive tools reliably anyway. The screen offers a switch for
+     * the cases where the user really wants the agent to touch files.
+     */
+    private const val KEY_TOOLS = "tools"
+
+    /**
+     * Pid and port of the running engine.
+     *
+     * `llama-server` is a child process of the app, but Android may kill the app while it
+     * keeps running. These two values let the next app start find that leftover process
+     * again instead of claiming "stopped" while a gigabyte of weights still sits in RAM.
+     */
+    private const val KEY_PID = "engine_pid"
+    private const val KEY_PORT = "engine_port"
+
+    /**
+     * Context window used when the user never changed it.
+     *
+     * opencode sends the whole conversation on every turn, so a small window fails with
+     * "request exceeds the available context size" after a handful of messages. 8192 tokens
+     * with the quantised KV cache the engine uses costs roughly 600 MB — acceptable on a
+     * 4 GB device — and still leaves room for a long chat.
+     */
+    const val DEFAULT_CONTEXT = 8192
 
     private fun prefs(ctx: Context) = ctx.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
@@ -45,9 +73,27 @@ object LocalAiStore {
         prefs(ctx).edit().putInt(KEY_THREADS, value.coerceIn(0, 32)).apply()
     }
 
+    fun tools(ctx: Context): Boolean = prefs(ctx).getBoolean(KEY_TOOLS, false)
+
+    fun setTools(ctx: Context, value: Boolean) {
+        prefs(ctx).edit().putBoolean(KEY_TOOLS, value).apply()
+    }
+
     /** Clears the selection (used when the file behind a custom path disappeared). */
     fun clearModel(ctx: Context) {
         prefs(ctx).edit().remove(KEY_MODEL).apply()
+    }
+
+    fun enginePid(ctx: Context): Int = prefs(ctx).getInt(KEY_PID, 0)
+
+    fun enginePort(ctx: Context): Int = prefs(ctx).getInt(KEY_PORT, 0)
+
+    fun setEngine(ctx: Context, pid: Int, port: Int) {
+        prefs(ctx).edit().putInt(KEY_PID, pid).putInt(KEY_PORT, port).apply()
+    }
+
+    fun clearEngine(ctx: Context) {
+        prefs(ctx).edit().remove(KEY_PID).remove(KEY_PORT).apply()
     }
 
     /** The selected model file, or null when nothing usable is selected. */

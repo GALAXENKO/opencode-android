@@ -1,6 +1,17 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+}
+
+// Release signing. The keystore lives outside the repo (buildenv/keys) and is referenced
+// through an ignored `keystore.properties`, so store passwords never reach git.
+// RuStore rejects APKs signed with the standard debug certificate ("Р­С‚Рѕ РґРµР±Р°Рі-СЃР±РѕСЂРєР°"),
+// therefore `assembleRelease` must be signed with this key.
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.isFile) keystorePropertiesFile.inputStream().use { load(it) }
 }
 
 android {
@@ -15,16 +26,45 @@ android {
         // Python runtime (and every `pip`-installed console script) unrunnable. Termux
         // pins the same value for the same reason.
         targetSdk = 28
-        versionCode = 6
-        versionName = "2.4.0"
+        versionCode = 7
+        versionName = "2.5.0"
+    }
+
+    signingConfigs {
+        if (keystorePropertiesFile.isFile) {
+            create("release") {
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+                // v1 + v2: v2 is required from Android 7, v1 keeps very old devices working.
+                enableV1Signing = true
+                enableV2Signing = true
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
+            // Without a keystore the build still works on a fresh clone, but the result is
+            // debug-signed and will be rejected by RuStore - generate your own key first.
+            signingConfig = if (keystorePropertiesFile.isFile) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
+    lint {
+        // `targetSdk = 28` is deliberate (see defaultConfig): Android 10+ refuses to exec
+        // binaries from the app's data dir for apps targeting API 29+, and the whole port
+        // depends on running the bundled opencode CLI and CPython. RuStore accepts >= 28.
+        // Without this the release build dies on lintVitalRelease with ExpiredTargetSdkVersion.
+        disable += "ExpiredTargetSdkVersion"
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

@@ -247,19 +247,39 @@ gradle :app:assembleDebug
 
 Готовый APK: `OpenCodeAndroid/app/build/outputs/apk/debug/app-debug.apk` (~166 МБ, arm64-v8a).
 
-`llama-server` для локального ИИ уже лежит в репозитории
-(`jniLibs/arm64-v8a/libllama-server.so`, 15 МБ) — NDK для обычной сборки не нужен. Пересобрать
-его из исходников (нужны NDK r27+ и CMake 3.22+):
+`llama-server` для локального ИИ уже лежит в репозитории — NDK для обычной сборки не нужен:
+
+- `jniLibs/arm64-v8a/libllama-server.so` — быстрая сборка под ARMv8.2-A с dot-product;
+- `jniLibs/arm64-v8a/libllama-server-baseline.so` — переносимая сборка без `-march`.
+
+Пересобрать их из исходников (нужны NDK r27+, CMake 3.22+, Ninja) — скрипт
+`tools/build-llama.ps1`:
 
 ```powershell
-git clone --depth 1 https://github.com/ggml-org/llama.cpp
+# быстрая сборка (по умолчанию)
+powershell -ExecutionPolicy Bypass -File tools/build-llama.ps1
+# переносимая: без -march, другой каталог сборки и другой файл на выходе
+powershell -ExecutionPolicy Bypass -Command "& tools/build-llama.ps1 -Arch '' `
+  -BuildDir build-llama-base -Target app/src/main/jniLibs/arm64-v8a/libllama-server-baseline.so"
+# эквивалент быстрой сборки:
 cmake -B build-llama -S llama.cpp -G Ninja -DCMAKE_TOOLCHAIN_FILE=<ndk>/build/cmake/android.toolchain.cmake `
   -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-26 -DCMAKE_BUILD_TYPE=Release `
-  -DLLAMA_CURL=OFF -DGGML_OPENMP=OFF `
+  -DGGML_NATIVE=OFF -DGGML_CPU_ARM_ARCH=armv8.2-a+dotprod+fp16 `
+  -DLLAMA_CURL=OFF -DGGML_OPENMP=OFF -DLLAMA_BUILD_UI=OFF -DLLAMA_USE_PREBUILT_UI=OFF `
   -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_SERVER=ON
 cmake --build build-llama --target llama-server -j
 llvm-strip --strip-all build-llama/bin/llama-server
 ```
+
+`-DGGML_CPU_ARM_ARCH=armv8.2-a+dotprod+fp16` обязателен: без него компилятор не включает
+NEON-ядра для квантованных весов (`vdotq_s32`) и перепаковку Q4_K, и обработка промпта падает
+до ~8 ток/с. Замер на Qwen3-4B Q4_K_M (10 ядер, 6 потоков): 8 → 34 ток/с на промпте и
+6 → 11 ток/с на генерации. Движок к тому же запускается с `-fa on -ctk q8_0 -ctv q8_0`:
+квантованный KV-кэш вдвое меньше, 16k контекста стоит ~1.2 ГБ вместо ~2.4 ГБ.
+
+Быстрая сборка требует ARMv8.2-A с dot-product (Cortex-A75 и новее, 2018+); на более старых
+ядрах она падает с SIGILL. Поэтому приложение смотрит на `asimddp` в `/proc/cpuinfo` и
+запускает подходящий бинарник, а выбор пишет в журнал движка.
 
 Установка на устройство:
 
